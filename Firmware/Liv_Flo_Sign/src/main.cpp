@@ -138,7 +138,7 @@ void loop()
   }
 
   static int x = 5;
-  const char* msg = "Love you!";
+  const char* msg = "Love you very much!";
   const int len = strlen(msg) * 6;
 
   matrix.fillScreen(0);
