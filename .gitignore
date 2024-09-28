@@ -1,0 +1,8 @@
+.DS_Store
+*__pycache__/
+credentials.h
+telegram_test.py
+discord_test.py
+*History/
+*Project Logs For Liv_Flo_Sign/
+*__Previews/
