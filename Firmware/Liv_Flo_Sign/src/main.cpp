@@ -48,7 +48,7 @@
 
 #define CHECK_FOR_UPDATES_INTERVAL 5
 #ifndef VERSION
-#define VERSION "0.0.3"
+#define VERSION "0.0.7"
 #endif
 
 #ifndef REPO_URL
@@ -138,7 +138,7 @@ void loop()
   }
 
   static int x = 5;
-  const char* msg = "Love you very much!";
+  const char* msg = "This is Version " VERSION;
   const int len = strlen(msg) * 6;
 
   matrix.fillScreen(0);
@@ -178,7 +178,7 @@ void firmwareUpdate()
   WiFiClientSecure client;
   client.setInsecure();
 
-  String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/esp32.bin");
+  String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/firmware.bin");
   console.log.println(firmwareUrl);
 
   if(!http.begin(client, firmwareUrl))
