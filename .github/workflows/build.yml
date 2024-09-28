@@ -1,64 +1,20 @@
-name: build
+name: Upload Binary to Release
+
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    tags:
-      - v*
-  pull_request:
   release:
-    types: [published]
+    types: [created, published]
 
 jobs:
-  build:
+  upload:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Cache pip
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          
-    - name: Cache PlatformIO
-      uses: actions/cache@v4
-      with:
-        path: ~/.platformio
-        key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-
-    - name: Install PlatformIO
-      run: |
-        python -m pip install --upgrade pip
-        pip install --upgrade platformio
-        pio platform update
-
-    - name: Set version var
-      run: echo "PLATFORMIO_BUILD_FLAGS=-DVERSION='\"${GITHUB_REF#refs/*/}\"' -DREPO_PATH='\"$GITHUB_REPOSITORY\"'" >> $GITHUB_ENV
-      if: startsWith(github.ref, 'refs/tags/v')
-
-    - name: Run PlatformIO
-      run: pio run -d Firmware/Liv_Flo_Sign
-
-    - name: Rename firmware
-      run: cp Firmware/Liv_Flo_Sign/.pio/build/custom_board/firmware.bin Firmware/esp32.bin
+      - name: Checkout code
+        uses: actions/checkout@v2
       
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/v')
-      with:
-        files: "Firmware/*.bin"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Archive Build
-      uses: kittaakos/upload-artifact-as-is@v0
-      with:
-        path: Firmware/*.bin
+      - name: Upload binary to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: Firmware/Liv_Flo_Sign/.pio/build/custom_board/firmware.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
