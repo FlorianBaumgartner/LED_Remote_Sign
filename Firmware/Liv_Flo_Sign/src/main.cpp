@@ -39,6 +39,29 @@
 
 #include <WiFiManager.h>
 
+#include <ArduinoOTA.h>
+#include <ESPmDNS.h>
+#include <HTTPClient.h>
+#include <HTTPUpdate.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+
+#define CHECK_FOR_UPDATES_INTERVAL 5
+#ifndef VERSION
+#define VERSION "0.0.1"
+#endif
+
+#ifndef REPO_URL
+#define REPO_URL "Florianbaumgartner/led_remote_sign"
+#endif
+
+unsigned long getUptimeSeconds();
+void firmwareUpdate();
+void checkForUpdates(void* parameter);
+
+TaskHandle_t checkForUpdatesTask = NULL;
+
+
 #define LED            10
 #define BLINK_INTERVAL 1000
 #define LED_RGB_PIN    8
@@ -76,12 +99,30 @@ void setup()
   // If connection fails it starts an access point with the specified name
   if(wm.autoConnect("AutoConnectAP"))
   {
-    Serial.println("connected...yeey :)");
+    console.log.println("connected...yeey :)");
   }
   else
   {
-    Serial.println("Configportal running");
+    console.log.println("Configportal running");
   }
+
+
+  console.log.print("Booting: ");
+#ifdef VERSION
+  console.log.println(VERSION);
+#endif
+
+  console.log.println("Ready");
+  console.log.print("IP address: ");
+  console.log.println(WiFi.localIP());
+
+  xTaskCreate(checkForUpdates,        // Function that should be called
+              "Check For Updates",    // Name of the task (for debugging)
+              6000,                   // Stack size (bytes)
+              NULL,                   // Parameter to pass
+              0,                      // Task priority
+              &checkForUpdatesTask    // Task handle
+  );
 }
 
 void loop()
@@ -92,11 +133,9 @@ void loop()
   if(millis() - t >= 1000)
   {
     t = millis();
-    console.log.printf("FPS: %d\n", cycles);
+    // console.log.printf("FPS: %d\n", cycles);
     cycles = 0;
   }
-
-  digitalWrite(LED, Serial);
 
   static int x = 5;
   const char* msg = "Love you!";
@@ -120,4 +159,64 @@ void loop()
   cycles++;
 
   wm.process();
+}
+
+
+void checkForUpdates(void* parameter)
+{
+  for(;;)
+  {
+    firmwareUpdate();
+    vTaskDelay((CHECK_FOR_UPDATES_INTERVAL * 1000) / portTICK_PERIOD_MS);
+  }
+}
+
+void firmwareUpdate()
+{
+#ifdef VERSION
+  HTTPClient http;
+  WiFiClientSecure client;
+  client.setInsecure();
+
+  String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/esp32.bin");
+  console.log.println(firmwareUrl);
+
+  if(!http.begin(client, firmwareUrl))
+    return;
+
+  int httpCode = http.sendRequest("HEAD");
+  if(httpCode < 300 || httpCode > 400 || http.getLocation().indexOf(String(VERSION)) > 0)
+  {
+    console.log.printf("Not updating from (sc=%d): %s\n", httpCode, http.getLocation().c_str());
+    http.end();
+    return;
+  }
+  else
+  {
+    console.log.printf("Updating from (sc=%d): %s\n", httpCode, http.getLocation().c_str());
+  }
+
+  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+  t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
+
+  switch(ret)
+  {
+    case HTTP_UPDATE_FAILED:
+      console.log.printf("Http Update Failed (Error=%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      break;
+
+    case HTTP_UPDATE_NO_UPDATES:
+      console.log.printf("No Update!\n");
+      break;
+
+    case HTTP_UPDATE_OK:
+      console.log.printf("Update OK!\n");
+      break;
+  }
+#endif
+}
+
+unsigned long getUptimeSeconds()
+{
+  return (unsigned long)(esp_timer_get_time() / 1000000ULL);
 }

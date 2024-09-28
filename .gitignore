@@ -1,6 +1,7 @@
 .DS_Store
 *__pycache__/
-credentials.h
+*credentials.h
+*Secrets.h
 telegram_test.py
 discord_test.py
 *History/
