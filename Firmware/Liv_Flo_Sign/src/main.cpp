@@ -48,7 +48,7 @@
 
 #define CHECK_FOR_UPDATES_INTERVAL 5
 #ifndef VERSION
-#define VERSION "0.0.1"
+#define VERSION "0.0.2"
 #endif
 
 #ifndef REPO_URL
