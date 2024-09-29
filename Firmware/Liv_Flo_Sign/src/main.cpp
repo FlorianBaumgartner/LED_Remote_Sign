@@ -48,16 +48,16 @@
 
 #define CHECK_FOR_UPDATES_INTERVAL 5
 #ifndef VERSION
-#define VERSION "0.0.8"
+#define VERSION "0.0.9"
 #endif
 
 #ifndef REPO_URL
 #define REPO_URL "Florianbaumgartner/led_remote_sign"
 #endif
 
-unsigned long getUptimeSeconds();
 void firmwareUpdate();
 void checkForUpdates(void* parameter);
+int compareVersion(const char* online, const char* local);
 
 TaskHandle_t checkForUpdatesTask = NULL;
 
@@ -82,39 +82,31 @@ void setup()
   console.begin();
   console.log.println("OK, Let's go");
 
-  matrix.begin();
-  matrix.setRotation(2);
-  matrix.setTextWrap(false);
-  matrix.setBrightness(10);
-  matrix.setTextColor(matrix.Color(255, 0, 255));
-
-  WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
-
-
   //wm.resetSettings();     // reset settings - wipe credentials for testing
 
+  WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
   wm.setConfigPortalBlocking(false);
   wm.setConfigPortalTimeout(60);
-  // automatically connect using saved credentials if they exist
-  // If connection fails it starts an access point with the specified name
-  if(wm.autoConnect("AutoConnectAP"))
+  if(wm.autoConnect("Liv Flo Sign"))
   {
-    console.log.println("connected...yeey :)");
+    console.log.println("[MAIN] Connected...yeey :)");
   }
   else
   {
-    console.log.println("Configportal running");
+    console.log.println("[MAIN] Configportal running");
   }
 
-
-  console.log.print("Booting: ");
-#ifdef VERSION
-  console.log.println(VERSION);
-#endif
-
-  console.log.println("Ready");
-  console.log.print("IP address: ");
+  console.log.println("[MAIN] Booting: v" VERSION);
+  console.log.print("[MAIN] IP address: ");
   console.log.println(WiFi.localIP());
+  console.log.print("[MAIN] SSID: ");
+  console.log.println(WiFi.SSID());
+
+  matrix.begin();
+  matrix.setRotation(2);
+  matrix.setTextWrap(false);
+  matrix.setBrightness(3);
+  matrix.setTextColor(matrix.Color(0, 0, 255));
 
   xTaskCreate(checkForUpdates,        // Function that should be called
               "Check For Updates",    // Name of the task (for debugging)
@@ -159,64 +151,87 @@ void loop()
   cycles++;
 
   wm.process();
-}
 
-
-void checkForUpdates(void* parameter)
-{
-  for(;;)
-  {
-    firmwareUpdate();
-    vTaskDelay((CHECK_FOR_UPDATES_INTERVAL * 1000) / portTICK_PERIOD_MS);
-  }
+  vTaskDelay(10);
 }
 
 void firmwareUpdate()
 {
-#ifdef VERSION
   HTTPClient http;
   WiFiClientSecure client;
   client.setInsecure();
 
   String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/firmware.bin");
-  console.log.println(firmwareUrl);
-
   if(!http.begin(client, firmwareUrl))
     return;
 
   int httpCode = http.sendRequest("HEAD");
-  if(httpCode < 300 || httpCode > 400 || http.getLocation().indexOf(String(VERSION)) > 0)
+  if(httpCode < 300 || httpCode > 400)
   {
-    console.log.printf("Not updating from (sc=%d): %s\n", httpCode, http.getLocation().c_str());
+    console.warning.printf("[MAIN] Error code: %d\n", httpCode);
     http.end();
     return;
   }
-  else
-  {
-    console.log.printf("Updating from (sc=%d): %s\n", httpCode, http.getLocation().c_str());
-  }
 
+  int start = http.getLocation().indexOf("download/v") + 10;
+  String onlineFirmware = http.getLocation().substring(start, http.getLocation().indexOf("/", start));
+  if(compareVersion(onlineFirmware.c_str(), VERSION) <= 0)
+  {
+    console.log.printf("[MAIN] No updates available (%s -> %s)\n", VERSION, onlineFirmware.c_str());
+    http.end();
+    return;
+  }
+  console.log.printf("[MAIN] Update available: %s -> %s\n", VERSION, onlineFirmware.c_str());
   httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
   t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
 
   switch(ret)
   {
     case HTTP_UPDATE_FAILED:
-      console.log.printf("Http Update Failed (Error=%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      console.error.printf("[MAIN] HTTP Update Failed (Error=%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
       break;
 
     case HTTP_UPDATE_NO_UPDATES:
-      console.log.printf("No Update!\n");
+      console.warning.printf("[MAIN] No Update!\n");
       break;
 
     case HTTP_UPDATE_OK:
-      console.log.printf("Update OK!\n");
+      console.ok.printf("[MAIN] Update OK!\n");
       break;
   }
-#endif
 }
 
-unsigned long getUptimeSeconds()
+void checkForUpdates(void* parameter)
 {
-  return (unsigned long)(esp_timer_get_time() / 1000000ULL);
+  while(true)
+  {
+    firmwareUpdate();
+    vTaskDelay((CHECK_FOR_UPDATES_INTERVAL * 1000) / portTICK_PERIOD_MS);
+  }
+}
+
+int compareVersion(const char* online, const char* local)
+{
+  int onlineMajor, onlineMinor, onlinePatch;
+  int localMajor, localMinor, localPatch;
+
+  sscanf(online, "%d.%d.%d", &onlineMajor, &onlineMinor, &onlinePatch);
+  sscanf(local, "%d.%d.%d", &localMajor, &localMinor, &localPatch);
+
+  if(onlineMajor > localMajor)
+    return 1;
+  if(onlineMajor < localMajor)
+    return -1;
+
+  if(onlineMinor > localMinor)
+    return 1;
+  if(onlineMinor < localMinor)
+    return -1;
+
+  if(onlinePatch > localPatch)
+    return 1;
+  if(onlinePatch < localPatch)
+    return -1;
+
+  return 0;
 }
