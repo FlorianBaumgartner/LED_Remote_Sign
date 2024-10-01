@@ -46,9 +46,9 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define CHECK_FOR_UPDATES_INTERVAL 5
+#define CHECK_FOR_UPDATES_INTERVAL 1
 #ifndef VERSION
-#define VERSION "0.0.11"
+#define VERSION "0.0.12"
 #endif
 
 #ifndef REPO_URL
@@ -107,7 +107,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(255, 0, 0));
+  matrix.setTextColor(matrix.Color(255, 255, 0));
 
   xTaskCreate(checkForUpdates,        // Function that should be called
               "Check For Updates",    // Name of the task (for debugging)
@@ -185,18 +185,10 @@ void firmwareUpdate()
   console.log.printf("[MAIN] Update available: %s -> %s\n", VERSION, onlineFirmware.c_str());
   httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
-  httpUpdate.onStart([]() {
-    console.log.printf("[MAIN] Update Start\n");
-  });
-  httpUpdate.onEnd([]() {
-    console.log.printf("[MAIN] Update End\n");
-  });
-  httpUpdate.onError([](int error) {
-    console.error.printf("[MAIN] Update Error: %d\n", error);
-  });
-  httpUpdate.onProgress([](int current, int total) {
-    console.log.printf("[MAIN] Update Progress: %d%%\n", (current * 100) / total);
-  });
+  httpUpdate.onStart([]() { console.log.printf("[MAIN] Update Start\n"); });
+  httpUpdate.onEnd([]() { console.log.printf("[MAIN] Update End\n"); });
+  httpUpdate.onError([](int error) { console.error.printf("[MAIN] Update Error: %d\n", error); });
+  httpUpdate.onProgress([](int current, int total) { console.log.printf("[MAIN] Update Progress: %d%%\n", (current * 100) / total); });
 
   t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
 
