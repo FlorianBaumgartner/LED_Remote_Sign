@@ -48,7 +48,7 @@
 
 #define CHECK_FOR_UPDATES_INTERVAL 1
 #ifndef VERSION
-#define VERSION "0.0.13"
+#define VERSION "0.0.14"
 #endif
 
 #ifndef REPO_URL
@@ -107,7 +107,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(255, 0, 255));
+  matrix.setTextColor(matrix.Color(0, 255, 255));
 
   xTaskCreate(checkForUpdates,        // Function that should be called
               "Check For Updates",    // Name of the task (for debugging)
