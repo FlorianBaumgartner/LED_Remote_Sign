@@ -48,7 +48,7 @@
 
 #define CHECK_FOR_UPDATES_INTERVAL 5
 #ifndef VERSION
-#define VERSION "0.0.10"
+#define VERSION "0.0.11"
 #endif
 
 #ifndef REPO_URL
@@ -107,7 +107,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(0, 255, 0));
+  matrix.setTextColor(matrix.Color(255, 0, 0));
 
   xTaskCreate(checkForUpdates,        // Function that should be called
               "Check For Updates",    // Name of the task (for debugging)
@@ -162,7 +162,7 @@ void firmwareUpdate()
   WiFiClientSecure client;
   client.setInsecure();
 
-  String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/firmware.bin");
+  static const String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/firmware.bin");
   if(!http.begin(client, firmwareUrl))
     return;
 
@@ -184,6 +184,20 @@ void firmwareUpdate()
   }
   console.log.printf("[MAIN] Update available: %s -> %s\n", VERSION, onlineFirmware.c_str());
   httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+
+  httpUpdate.onStart([]() {
+    console.log.printf("[MAIN] Update Start\n");
+  });
+  httpUpdate.onEnd([]() {
+    console.log.printf("[MAIN] Update End\n");
+  });
+  httpUpdate.onError([](int error) {
+    console.error.printf("[MAIN] Update Error: %d\n", error);
+  });
+  httpUpdate.onProgress([](int current, int total) {
+    console.log.printf("[MAIN] Update Progress: %d%%\n", (current * 100) / total);
+  });
+
   t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
 
   switch(ret)
