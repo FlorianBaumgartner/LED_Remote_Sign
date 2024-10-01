@@ -134,6 +134,10 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=UQKNQQGT
 
+[GeneratedDocument1]
+DocumentPath=Project Outputs for Liv_Flo_Sign\Design Rule Check - Liv_Flo_Sign_V1.html
+DItemRevisionGUID=
+
 [SearchPath1]
 Path=..\..\..\..\..\..\Program Files\Altium\Libraries\*.*
 IncludeSubFolders=1
