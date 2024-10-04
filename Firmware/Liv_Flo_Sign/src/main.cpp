@@ -98,7 +98,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(255, 255, 255));
+  matrix.setTextColor(matrix.Color(0, 0, 255));
 
   githubOTA.begin(REPO_URL);
   xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);
