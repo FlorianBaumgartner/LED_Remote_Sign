@@ -101,23 +101,19 @@ bool GithubOTA::checkForUpdates()
   int httpCode = http.sendRequest("HEAD");
   if(httpCode < 300 || httpCode > 400)
   {
-    console.warning.printf("[GITHUB_OTA] Error code: %d\n", httpCode);
+    // console.warning.printf("[GITHUB_OTA] Error code: %d\n", httpCode);
     http.end();
     _serverAvailable = false;
     _updateAvailable = false;
     _startUpdate = false;
     return false;
   }
+  _serverAvailable = true;
 
   int start = http.getLocation().indexOf("download/v") + 10;
   String onlineFirmware = http.getLocation().substring(start, http.getLocation().indexOf("/", start));
   _latestFwVersion = decodeFirmwareString(onlineFirmware.c_str());
   _updateAvailable = compareFirmware(_latestFwVersion, _currentFwVersion) > 0;    // Check if update is available
-
-  console.log.printf("[GITHUB_OTA] Server available: %s\n", _serverAvailable ? "Yes" : "No");
-  console.log.printf("[GITHUB_OTA] Update available: %s\n", _updateAvailable ? "Yes" : "No");
-  console.log.printf("[GITHUB_OTA] Current FW: %s\n", FimrwareVersionToString(_currentFwVersion));
-  console.log.printf("[GITHUB_OTA] Latest FW: %s\n", FimrwareVersionToString(_latestFwVersion));
 
   if(_startUpdate && _updateAvailable)
   {

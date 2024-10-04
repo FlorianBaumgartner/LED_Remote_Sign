@@ -99,7 +99,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(0, 255, 255));
+  matrix.setTextColor(matrix.Color(0, 0, 255));
 
   githubOTA.begin(REPO_URL);
   xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);
@@ -151,9 +151,8 @@ static void updateTask(void* param)
     if(githubOTA.updateInProgress())
     {
       matrix.fillScreen(0);
-      matrix.setCursor(0, 0);
-      matrix.setTextColor(matrix.Color(255, 0, 0));
-      matrix.printf("%d%%", githubOTA.getProgress());
+      uint8_t progress = githubOTA.getProgress();    // In Percent
+      matrix.fillRect(0, 0, progress / 20, 5, matrix.Color(0, 255, 0));
     }
     else
     {
