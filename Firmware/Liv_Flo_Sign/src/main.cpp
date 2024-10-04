@@ -31,35 +31,21 @@
  ******************************************************************************/
 
 #include <Arduino.h>
+#include "GithubOTA.h"
 #include "console.h"
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
 
-#include <WiFiManager.h>
-
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
-#include <HTTPClient.h>
-#include <HTTPUpdate.h>
 #include <WiFi.h>
+#include <WiFiManager.h>
 #include <WiFiUdp.h>
 
-#define CHECK_FOR_UPDATES_INTERVAL 1
-#ifndef VERSION
-#define VERSION "0.0.14"
-#endif
 
-#ifndef REPO_URL
-#define REPO_URL "Florianbaumgartner/led_remote_sign"
-#endif
-
-void firmwareUpdate();
-void checkForUpdates(void* parameter);
-int compareVersion(const char* online, const char* local);
-
-TaskHandle_t checkForUpdatesTask = NULL;
+#define REPO_URL       "florianbaumgartner/led_remote_sign"
 
 
 #define LED            10
@@ -70,9 +56,15 @@ TaskHandle_t checkForUpdatesTask = NULL;
 #define LED_MATRIX_H   5
 #define LED_MATRIX_W   TOTAL_LEDS / LED_MATRIX_H
 
+
 WiFiManager wm;
+GithubOTA githubOTA;
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN,
                                                NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
+
+
+void scrollTextNonBlocking(const char* text, int speed);
+static void updateTask(void* param);
 
 void setup()
 {
@@ -96,7 +88,7 @@ void setup()
     console.log.println("[MAIN] Configportal running");
   }
 
-  console.log.println("[MAIN] Booting: v" VERSION);
+  console.log.println("[MAIN] Booting: v" FIRMWARE_VERSION);
   console.log.print("[MAIN] IP address: ");
   console.log.println(WiFi.localIP());
   console.log.print("[MAIN] SSID: ");
@@ -107,38 +99,28 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(0, 255, 255));
+  matrix.setTextColor(matrix.Color(255, 0, 255));
 
-  xTaskCreate(checkForUpdates,        // Function that should be called
-              "Check For Updates",    // Name of the task (for debugging)
-              6000,                   // Stack size (bytes)
-              NULL,                   // Parameter to pass
-              0,                      // Task priority
-              &checkForUpdatesTask    // Task handle
-  );
+  githubOTA.begin(REPO_URL);
+  xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);
 }
 
 void loop()
 {
-  static uint32_t cycles = 0;
+  wm.process();
+  vTaskDelay(10);
+}
 
-  static int t = 0;
-  if(millis() - t >= 1000)
-  {
-    t = millis();
-    // console.log.printf("FPS: %d\n", cycles);
-    cycles = 0;
-  }
-
+void scrollTextNonBlocking(const char* text, int speed)
+{
   static int x = 5;
-  char msg[50] = VERSION;
-  const int len = strlen(msg) * 6;
+  const int len = strlen(text) * 6;
 
   matrix.fillScreen(0);
   matrix.setCursor(x, -2);
-  matrix.print(msg);
+  matrix.print(text);
   static uint32_t tShift = 0;
-  if(millis() - tShift >= 50)
+  if(millis() - tShift >= speed)
   {
     tShift = millis();
     if(--x < -len)
@@ -146,101 +128,44 @@ void loop()
       x = 5;
     }
   }
-  uint32_t tp = micros();
-  matrix.show();
-  // console.log.printf("Time: %d\n", micros() - tp);
-  cycles++;
-
-  wm.process();
-
-  vTaskDelay(10);
 }
 
-void firmwareUpdate()
+static void updateTask(void* param)
 {
-  HTTPClient http;
-  WiFiClientSecure client;
-  client.setInsecure();
-
-  String firmwareUrl = String("https://github.com/") + REPO_URL + String("/releases/latest/download/firmware.bin") + "?t=" + String(millis());
-  if(!http.begin(client, firmwareUrl))
-    return;
-
-
-  http.addHeader("Cache-Control", "no-cache");    // no cache
-  int httpCode = http.sendRequest("HEAD");
-  if(httpCode < 300 || httpCode > 400)
+  while(1)
   {
-    console.warning.printf("[MAIN] Error code: %d\n", httpCode);
-    http.end();
-    return;
+    static uint32_t cycles = 0;
+
+    static int t = 0;
+    if(millis() - t >= 1000)
+    {
+      t = millis();
+      // console.log.printf("FPS: %d\n", cycles);
+      cycles = 0;
+    }
+
+    if(githubOTA.updateAvailable())
+    {
+      console.log.println("[MAIN] Update available");
+      githubOTA.startUpdate();
+      scrollTextNonBlocking("Update available", 50);
+    }
+    if(githubOTA.updateInProgress())
+    {
+      matrix.fillScreen(0);
+      matrix.setCursor(0, 0);
+      matrix.setTextColor(matrix.Color(255, 0, 0));
+      matrix.printf("%d%%", githubOTA.getProgress());
+    }
+    else
+    {
+      char fwVersion[16];
+      sprintf(fwVersion, "v%d.%d.%d", githubOTA.getCurrentFirmwareVersion().major, githubOTA.getCurrentFirmwareVersion().minor,
+              githubOTA.getCurrentFirmwareVersion().patch);
+      scrollTextNonBlocking(fwVersion, 50);
+    }
+    matrix.show();
+    cycles++;
+    vTaskDelay(30);
   }
-
-  int start = http.getLocation().indexOf("download/v") + 10;
-  String onlineFirmware = http.getLocation().substring(start, http.getLocation().indexOf("/", start));
-  if(compareVersion(onlineFirmware.c_str(), VERSION) <= 0)
-  {
-    console.log.printf("[MAIN] No updates available (%s -> %s)\n", VERSION, onlineFirmware.c_str());
-    http.end();
-    return;
-  }
-  console.log.printf("[MAIN] Update available: %s -> %s\n", VERSION, onlineFirmware.c_str());
-  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-
-  httpUpdate.onStart([]() { console.log.printf("[MAIN] Update Start\n"); });
-  httpUpdate.onEnd([]() { console.log.printf("[MAIN] Update End\n"); });
-  httpUpdate.onError([](int error) { console.error.printf("[MAIN] Update Error: %d\n", error); });
-  httpUpdate.onProgress([](int current, int total) { console.log.printf("[MAIN] Update Progress: %d%%\n", (current * 100) / total); });
-
-  t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
-
-  switch(ret)
-  {
-    case HTTP_UPDATE_FAILED:
-      console.error.printf("[MAIN] HTTP Update Failed (Error=%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
-      break;
-
-    case HTTP_UPDATE_NO_UPDATES:
-      console.warning.printf("[MAIN] No Update!\n");
-      break;
-
-    case HTTP_UPDATE_OK:
-      console.ok.printf("[MAIN] Update OK!\n");
-      break;
-  }
-}
-
-void checkForUpdates(void* parameter)
-{
-  while(true)
-  {
-    firmwareUpdate();
-    vTaskDelay((CHECK_FOR_UPDATES_INTERVAL * 1000) / portTICK_PERIOD_MS);
-  }
-}
-
-int compareVersion(const char* online, const char* local)
-{
-  int onlineMajor, onlineMinor, onlinePatch;
-  int localMajor, localMinor, localPatch;
-
-  sscanf(online, "%d.%d.%d", &onlineMajor, &onlineMinor, &onlinePatch);
-  sscanf(local, "%d.%d.%d", &localMajor, &localMinor, &localPatch);
-
-  if(onlineMajor > localMajor)
-    return 1;
-  if(onlineMajor < localMajor)
-    return -1;
-
-  if(onlineMinor > localMinor)
-    return 1;
-  if(onlineMinor < localMinor)
-    return -1;
-
-  if(onlinePatch > localPatch)
-    return 1;
-  if(onlinePatch < localPatch)
-    return -1;
-
-  return 0;
 }
