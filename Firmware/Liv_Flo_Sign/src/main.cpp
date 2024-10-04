@@ -68,11 +68,10 @@ static void updateTask(void* param);
 
 void setup()
 {
+  console.begin();
+
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
-
-  console.begin();
-  console.log.println("OK, Let's go");
 
   //wm.resetSettings();     // reset settings - wipe credentials for testing
 
@@ -99,7 +98,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(0, 0, 255));
+  matrix.setTextColor(matrix.Color(0, 255, 0));
 
   githubOTA.begin(REPO_URL);
   xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);
@@ -134,25 +133,15 @@ static void updateTask(void* param)
 {
   while(1)
   {
-    static uint32_t cycles = 0;
-
-    static int t = 0;
-    if(millis() - t >= 1000)
-    {
-      t = millis();
-      // console.log.printf("FPS: %d\n", cycles);
-      cycles = 0;
-    }
-
-    if(githubOTA.updateAvailable())
-    {
-      githubOTA.startUpdate();
-    }
     if(githubOTA.updateInProgress())
     {
       matrix.fillScreen(0);
-      uint8_t progress = githubOTA.getProgress();    // In Percent
-      matrix.fillRect(0, 0, progress / 20, 5, matrix.Color(0, 255, 0));
+      uint8_t progress = githubOTA.getProgress();
+      matrix.fillRect(0, 0, (progress / 25) + 1, 5, matrix.Color(255, 0, 0));
+    }
+    else if(githubOTA.updateAvailable())
+    {
+      githubOTA.startUpdate();
     }
     else
     {
@@ -162,7 +151,6 @@ static void updateTask(void* param)
       scrollTextNonBlocking(fwVersion, 50);
     }
     matrix.show();
-    cycles++;
     vTaskDelay(30);
   }
 }
