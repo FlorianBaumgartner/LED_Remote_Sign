@@ -146,9 +146,7 @@ static void updateTask(void* param)
 
     if(githubOTA.updateAvailable())
     {
-      console.log.println("[MAIN] Update available");
       githubOTA.startUpdate();
-      scrollTextNonBlocking("Update available", 50);
     }
     if(githubOTA.updateInProgress())
     {
