@@ -118,7 +118,7 @@ bool GithubOTA::checkForUpdates()
   {
     _startUpdate = false;
     _updateAborted = false;
-    _updateInProgress = false;
+    _updateInProgress = true;
     _progress = 0;
 
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
