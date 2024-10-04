@@ -114,6 +114,11 @@ bool GithubOTA::checkForUpdates()
   _latestFwVersion = decodeFirmwareString(onlineFirmware.c_str());
   _updateAvailable = compareFirmware(_latestFwVersion, _currentFwVersion) > 0;    // Check if update is available
 
+  console.log.printf("[GITHUB_OTA] Server available: %s\n", _serverAvailable ? "Yes" : "No");
+  console.log.printf("[GITHUB_OTA] Update available: %s\n", _updateAvailable ? "Yes" : "No");
+  console.log.printf("[GITHUB_OTA] Current FW: %s\n", FimrwareVersionToString(_currentFwVersion));
+  console.log.printf("[GITHUB_OTA] Latest FW: %s\n", FimrwareVersionToString(_latestFwVersion));
+
   if(_startUpdate && _updateAvailable)
   {
     _startUpdate = false;
