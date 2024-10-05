@@ -173,13 +173,10 @@ const char* GithubOTA::FimrwareVersionToString(Firmware& fw)
 void GithubOTA::updateTask(void* pvParameter)
 {
   GithubOTA* ref = (GithubOTA*)pvParameter;
-
   while(true)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
-
     ref->checkForUpdates();    // Check is server is available and if an update is available
-
     vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / FIRMWARE_UPDATE_INTERVAL);
   }
   vTaskDelete(NULL);
