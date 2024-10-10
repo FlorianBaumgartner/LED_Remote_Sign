@@ -50,9 +50,8 @@ void GithubOTA::begin(const char* repo, const char* currentFwVersion)
   _currentFwVersion = decodeFirmwareString(currentFwVersion);
 
   xTaskCreate(updateTask, "github", 8096, this, 0, NULL);
-  console.log.printf("[GITHUB_OTA] Begin\n");
+  console.log.println("[GITHUB_OTA] Started");
 }
-
 
 Firmware GithubOTA::decodeFirmwareString(const char* version)
 {
@@ -83,6 +82,14 @@ int GithubOTA::compareFirmware(Firmware a, Firmware b)
 
 bool GithubOTA::checkForUpdates()
 {
+  if(WiFi.status() != WL_CONNECTED)
+  {
+    _serverAvailable = false;
+    _updateAvailable = false;
+    _startUpdate = false;
+    return false;
+  }
+
   HTTPClient http;
   WiFiClientSecure client;
   client.setInsecure();

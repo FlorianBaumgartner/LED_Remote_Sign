@@ -44,6 +44,9 @@
 #include <WiFiManager.h>
 #include <WiFiUdp.h>
 
+#include "Discord.h"
+#include "utils.h"
+
 
 #define REPO_URL       "florianbaumgartner/led_remote_sign"
 
@@ -58,6 +61,7 @@
 
 
 WiFiManager wm;
+Discord discord;
 GithubOTA githubOTA;
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN,
                                                NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
@@ -73,6 +77,11 @@ void setup()
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
 
+  // Get reset reason
+  esp_reset_reason_t resetReason = esp_reset_reason();
+  const char* resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
+                                "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
+
   //wm.resetSettings();     // reset settings - wipe credentials for testing
 
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
@@ -80,18 +89,22 @@ void setup()
   wm.setConfigPortalTimeout(60);
   if(wm.autoConnect("Liv Flo Sign"))
   {
-    console.log.println("[MAIN] Connected...yeey :)");
+    console.ok.println("[MAIN] Connected...yeey :)");
   }
   else
   {
-    console.log.println("[MAIN] Configportal running");
+    console.warning.println("[MAIN] Configportal running");
   }
 
+  console.log.printf("[MAIN] Reset reason: %s\n", resetReasons[resetReason]);
   console.log.println("[MAIN] Booting: v" FIRMWARE_VERSION);
-  console.log.print("[MAIN] IP address: ");
-  console.log.println(WiFi.localIP());
-  console.log.print("[MAIN] SSID: ");
-  console.log.println(WiFi.SSID());
+  // console.log.print("[MAIN] IP address: ");
+  // console.log.println(WiFi.localIP());
+  // console.log.print("[MAIN] SSID: ");
+  // console.log.println(WiFi.SSID());
+
+  Utils::begin();
+  console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());
 
   matrix.begin();
   matrix.setRotation(2);
@@ -99,6 +112,8 @@ void setup()
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
   matrix.setTextColor(matrix.Color(255, 255, 0));
+
+  discord.begin();
 
   githubOTA.begin(REPO_URL);
   xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);

@@ -36,20 +36,23 @@ bool Console::begin(void)
 {
   if(type == HWCDC_t)
   {
-    #if CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3
     (*(HWCDC*)&stream).begin();
     enable(true);
-    #endif
+#endif
   }
   else if(type == USBCDC_t)
   {
-    #if !CONFIG_IDF_TARGET_ESP32C3
-    (*(USBCDC*)&stream).enableReboot(true);     // Enables entering bootloader when changing to baudrate of 1200 bit/s (normaly not used, due to dedicated DFU USB-Endpoint)
+#if !CONFIG_IDF_TARGET_ESP32C3
+    (*(USBCDC*)&stream)
+      .enableReboot(
+        true);    // Enables entering bootloader when changing to baudrate of 1200 bit/s (normaly not used, due to dedicated DFU USB-Endpoint)
     (*(USBCDC*)&stream).onEvent(usbEventCallback);
     (*(USBCDC*)&stream).begin();
-    #endif
+#endif
   }
-  else return false;
+  else
+    return false;
   return initialize();
 }
 
@@ -61,12 +64,13 @@ bool Console::begin(unsigned long baud, uint32_t config, int8_t rxPin, int8_t tx
   }
   else if(type == HWCDC_t)
   {
-    #if CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3
     (*(HWCDC*)&stream).begin();
     enable(true);
-    #endif
+#endif
   }
-  else return false;
+  else
+    return false;
   return initialize();
 }
 
@@ -84,25 +88,25 @@ void Console::end(void)
   initialized = false;
 }
 
-void Console::writeTask(void *pvParameter)
+void Console::writeTask(void* pvParameter)
 {
   Console* ref = (Console*)pvParameter;
 
   while(ref->initialized)
   {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);          // Wait on notification for data in buffer or console opened
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);    // Wait on notification for data in buffer or console opened
     if(ref->streamActive)
     {
       if(xSemaphoreTake(ref->bufferAccessSemaphore, portMAX_DELAY))
       {
-        if(ref->readIdx < ref->writeIdx)              // Regular case, no wrap around needed
+        if(ref->readIdx < ref->writeIdx)    // Regular case, no wrap around needed
         {
-          ref->stream.write((const uint8_t*) ref->ringBuffer + ref->readIdx, ref->writeIdx - ref->readIdx);
+          ref->stream.write((const uint8_t*)ref->ringBuffer + ref->readIdx, ref->writeIdx - ref->readIdx);
         }
-        else if(ref->readIdx > ref->writeIdx)         // Need to send buffer in two parts (ReadIdx to End | 0 to WriteIdx)
+        else if(ref->readIdx > ref->writeIdx)    // Need to send buffer in two parts (ReadIdx to End | 0 to WriteIdx)
         {
-          ref->stream.write((const uint8_t*) ref->ringBuffer + ref->readIdx, QUEUE_BUFFER_LENGTH - ref->readIdx);
-          ref->stream.write((const uint8_t*) ref->ringBuffer, ref->writeIdx);
+          ref->stream.write((const uint8_t*)ref->ringBuffer + ref->readIdx, QUEUE_BUFFER_LENGTH - ref->readIdx);
+          ref->stream.write((const uint8_t*)ref->ringBuffer, ref->writeIdx);
         }
         ref->readIdx = ref->writeIdx;
         xSemaphoreGive(ref->bufferAccessSemaphore);
@@ -112,7 +116,7 @@ void Console::writeTask(void *pvParameter)
   vTaskDelete(NULL);
 }
 
-void Console::interfaceTask(void *pvParameter)
+void Console::interfaceTask(void* pvParameter)
 {
   Console* ref = (Console*)pvParameter;
 
@@ -143,40 +147,41 @@ void Console::interfaceTask(void *pvParameter)
     if(ref->streamActive && !streamActiveOld)
     {
       ref->printStartupMessage();
-      vTaskDelay((const TickType_t) 10);                    // Make sure that startup message is printed befor everything else
-      xTaskNotifyGive(ref->writeTaskHandle);                // Send signal to update task (for sending out data in queue buffer)
+      vTaskDelay((const TickType_t)10);         // Make sure that startup message is printed befor everything else
+      xTaskNotifyGive(ref->writeTaskHandle);    // Send signal to update task (for sending out data in queue buffer)
     }
-    if(!ref->streamActive && streamActiveOld)               // Detect if console has been closed
+    if(!ref->streamActive && streamActiveOld)    // Detect if console has been closed
     {
       ref->stream.flush();
       ref->stream.clearWriteError();
     }
     streamActiveOld = ref->streamActive;
 
-    vTaskDelayUntil(&task_last_tick, (const TickType_t) 1000 / INTERFACE_UPDATE_RATE);
+    vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / INTERFACE_UPDATE_RATE);
   }
   vTaskDelete(NULL);
 }
 
-size_t Console::write(const uint8_t *buffer, size_t size)
+size_t Console::write(const uint8_t* buffer, size_t size)
 {
-  if(size == 0) return 0;
+  if(size == 0)
+    return 0;
   if(xSemaphoreTake(bufferAccessSemaphore, portMAX_DELAY))
   {
     int free;
-    size = min(size, (size_t) QUEUE_BUFFER_LENGTH - 1);
+    size = min(size, (size_t)QUEUE_BUFFER_LENGTH - 1);
     if(writeIdx + size <= QUEUE_BUFFER_LENGTH)
     {
-      memcpy((uint8_t*) ringBuffer + writeIdx, buffer, size);
+      memcpy((uint8_t*)ringBuffer + writeIdx, buffer, size);
       free = QUEUE_BUFFER_LENGTH - (writeIdx - readIdx);
     }
     else
     {
       int firstPartSize = QUEUE_BUFFER_LENGTH - writeIdx;
-      memcpy((uint8_t*) ringBuffer + writeIdx, buffer, firstPartSize);
-      memcpy((uint8_t*) ringBuffer, buffer + firstPartSize, size - firstPartSize);
+      memcpy((uint8_t*)ringBuffer + writeIdx, buffer, firstPartSize);
+      memcpy((uint8_t*)ringBuffer, buffer + firstPartSize, size - firstPartSize);
       free = readIdx - writeIdx;
-    } 
+    }
     writeIdx = (writeIdx + size) & (QUEUE_BUFFER_LENGTH - 1);
     if(size > free)
     {
@@ -184,7 +189,7 @@ size_t Console::write(const uint8_t *buffer, size_t size)
     }
 
     xSemaphoreGive(bufferAccessSemaphore);
-    xTaskNotifyGive(writeTaskHandle);               // Send signal to update task (for sending out data)
+    xTaskNotifyGive(writeTaskHandle);    // Send signal to update task (for sending out data)
     return size;
   }
   return 0;
@@ -204,8 +209,8 @@ void Console::printStartupMessage(void)
   stream.print(CONSOLE_CLEAR);
   stream.print(CONSOLE_COLOR_BOLD_CYAN CONSOLE_BACKGROUND_DEFAULT);
   stream.println("****************************************************");
-  stream.println("*                   ESP32-C3 Basic                 *");
-  stream.println("*             2023, Florian Baumgartner            *");
+  stream.println("*                    Liv-Flo Sign                  *");
+  stream.println("*             2024, Florian Baumgartner            *");
   stream.println("****************************************************");
   stream.println(CONSOLE_LOG);
 }
@@ -213,10 +218,10 @@ void Console::printStartupMessage(void)
 
 #ifndef USE_CUSTOM_CONSOLE
 #if CONFIG_IDF_TARGET_ESP32C3
-  HWCDC USBSerial;
-  Console console(USBSerial);
+HWCDC USBSerial;
+Console console(USBSerial);
 #else
-  USBCDC USBSerial;
-  Console console(USBSerial);
+USBCDC USBSerial;
+Console console(USBSerial);
 #endif
 #endif
