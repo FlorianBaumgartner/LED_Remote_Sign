@@ -98,13 +98,14 @@ void setup()
 
   console.log.printf("[MAIN] Reset reason: %s\n", resetReasons[resetReason]);
   console.log.println("[MAIN] Booting: v" FIRMWARE_VERSION);
-  // console.log.print("[MAIN] IP address: ");
-  // console.log.println(WiFi.localIP());
-  // console.log.print("[MAIN] SSID: ");
-  // console.log.println(WiFi.SSID());
 
   Utils::begin();
   console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());
+  struct tm timeinfo;
+  Utils::getCurrentTime(timeinfo);
+  console.log.printf("[MAIN] Current time: %02d.%02d.%04d %02d:%02d:%02d\n", timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900,
+                     timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
 
   matrix.begin();
   matrix.setRotation(2);

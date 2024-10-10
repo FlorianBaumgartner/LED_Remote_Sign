@@ -48,11 +48,14 @@ class Utils
 
   static bool begin(void);
   static uint32_t getUnixTime();   // GMT+0000
+  static bool getCurrentTime(struct tm& timeinfo);   // Local time
+  static bool isDaylightSavingTime() { return dst_offset != 0; }
   static Country getCountry() { return country; }
 
   private:
     static Country country;
-    static int32_t time_offset;
+    static int32_t raw_offset;
+    static int32_t dst_offset;
 
     static bool updateTimeZoneOffset();
 };

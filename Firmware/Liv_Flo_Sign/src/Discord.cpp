@@ -76,8 +76,6 @@ bool Discord::begin()
   // Unscramble the Discord API URL and the Discord Bot Token
   apiUrl = unscrambleKey(DISCORD_API_URL, sizeof(DISCORD_API_URL) - 1);
   apiToken = unscrambleKey(DISCORD_BOT_TOKEN, sizeof(DISCORD_BOT_TOKEN) - 1);
-  console.log.printf("[DISCORD] API URL: %s\n", apiUrl.c_str());
-  console.log.printf("[DISCORD] Bot Token: %s\n", apiToken.c_str());
 
   xTaskCreate(updateTask, "discord", 8096, this, 5, NULL);
   console.ok.println("[DISCORD] Started");

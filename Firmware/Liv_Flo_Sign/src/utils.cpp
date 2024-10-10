@@ -7,7 +7,8 @@
 #include "HTTPClient.h"
 
 Utils::Country Utils::country = Utils::Unknown;
-int32_t Utils::time_offset = 0;
+int32_t Utils::raw_offset = 0;
+int32_t Utils::dst_offset = 0;
 
 bool Utils::begin(void)
 {
@@ -32,17 +33,8 @@ bool Utils::begin(void)
   }
 
   updateTimeZoneOffset();
-
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo))
-  {
-    console.error.println("[UTILS] Failed to obtain time");
-    return false;
-  }
-  console.log.printf("[UTILS] Current time: %02d.%02d.%04d %02d:%02d:%02d\n", timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900,
-                     timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-  return true;
+  return getCurrentTime(timeinfo);
 }
 
 uint32_t Utils::getUnixTime()
@@ -54,14 +46,20 @@ uint32_t Utils::getUnixTime()
     lastCheck = millis();
     updateTimeZoneOffset();
   }
-  if(!getLocalTime(&timeinfo))
-  {
-    console.error.println("[UTILS] Failed to obtain time");
-    return 0;    // Return 0 in case of failure
-  }
+  getCurrentTime(timeinfo);
   time_t now;
   time(&now);    // Get current time as Unix timestamp
   return now;
+}
+
+bool Utils::getCurrentTime(struct tm& timeinfo)
+{
+  if(!getLocalTime(&timeinfo))
+  {
+    console.error.println("[UTILS] Failed to obtain time");
+    return false;
+  }
+  return true;
 }
 
 bool Utils::updateTimeZoneOffset()
@@ -79,11 +77,10 @@ bool Utils::updateTimeZoneOffset()
     return false;
   }
   String response = http.getString();
-  int32_t raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
-  int32_t dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
+  raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
+  dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
   http.end();
-  time_offset = raw_offset + dst_offset;
-  console.printf("[UTILS] Time Offset: %ld\n", time_offset);
-  configTime(time_offset, 0, ntpServer);
+  console.printf("[UTILS] Time Offset: %ld\n", raw_offset + dst_offset);
+  configTime(raw_offset + dst_offset, 0, ntpServer);
   return true;
 }
