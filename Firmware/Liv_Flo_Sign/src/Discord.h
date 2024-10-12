@@ -112,6 +112,7 @@ class Discord
   int myDeviceIndex = -1;
   bool newMessageFlag = false;
   bool newEventFlag = false;
+  bool outgoingEventFlag = false;
 
 
   const Devices devices[2] = {Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD}, 1),

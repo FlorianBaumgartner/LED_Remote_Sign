@@ -85,6 +85,7 @@ bool Discord::begin()
 void Discord::sendEvent(const char* event)
 {
   eventMessageToSend = String(event);
+  outgoingEventFlag = true;
 }
 
 void Discord::getDeviceName(char* deviceName)
@@ -92,7 +93,6 @@ void Discord::getDeviceName(char* deviceName)
   uint64_t chipId = ESP.getEfuseMac();    // Unique ID from ESP32-C3 (12 bytes)
   sprintf(deviceName, "%04X%08X", (uint16_t)(chipId >> 32), (uint32_t)chipId);
 }
-
 bool Discord::checkForMessages()
 {
   WiFiClientSecure client;
@@ -111,10 +111,22 @@ bool Discord::checkForMessages()
     //   console.log.println("[DISCORD] Message not found in this chunk, loading next chunk.");
     // }
 
+    if(outgoingEventFlag)    // Check if there's an event to send
+    {
+      console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+      return false;
+    }
+
     String apiUrlWithLimit = apiUrl + "&limit=" + String(Devices::maxMessageCountPerRequest);
     if(lastMessageId.length() > 0)    // If there's a last message ID, use it to fetch older messages
     {
       apiUrlWithLimit += "&before=" + lastMessageId;
+    }
+
+    if(outgoingEventFlag)    // Early exit before connection setup
+    {
+      console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+      return false;
     }
 
     if(!client.connect(discordHost, httpsPort))
@@ -123,11 +135,25 @@ bool Discord::checkForMessages()
       return false;
     }
 
+    if(outgoingEventFlag)    // Early exit before sending request
+    {
+      console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+      client.stop();
+      return false;
+    }
+
     client.print(String("GET ") + apiUrlWithLimit + " HTTP/1.1\r\n" + "Host: " + discordHost + "\r\n" + "Authorization: Bot " + apiToken + "\r\n" +
                  "User-Agent: ESP32\r\n" + "Connection: close\r\n\r\n");
 
     while(client.connected())    // Read the response header
     {
+      if(outgoingEventFlag)    // Early exit during response header reading
+      {
+        console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+        client.stop();
+        return false;
+      }
+
       String line = client.readStringUntil('\n');
       if(line == "\r")
       {
@@ -138,6 +164,13 @@ bool Discord::checkForMessages()
     String payload;
     while(client.connected() || client.available())
     {
+      if(outgoingEventFlag)    // Early exit during payload reading
+      {
+        console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+        client.stop();
+        return false;
+      }
+
       payload += client.readString();
     }
 
@@ -158,6 +191,12 @@ bool Discord::checkForMessages()
     payload = payload.substring(start);
     int end = payload.lastIndexOf(']');
     payload = payload.substring(0, end + 1);
+
+    if(outgoingEventFlag)    // Early exit before JSON deserialization
+    {
+      console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+      return false;
+    }
 
     static JsonDocument doc;
     DeserializationError error = deserializeJson(doc, payload);
@@ -233,6 +272,7 @@ bool Discord::checkForMessages()
   return true;
 }
 
+
 bool Discord::checkForOutgoingEvents()
 {
   if(eventMessageToSend.length() == 0)
@@ -278,6 +318,7 @@ bool Discord::checkForOutgoingEvents()
   console.ok.printf("[DISCORD] Event sent: %s\n", eventMessageToSend.c_str());
   client.stop();
   eventMessageToSend = "";
+  outgoingEventFlag = false;
   return true;
 }
 

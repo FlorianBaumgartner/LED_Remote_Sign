@@ -70,7 +70,7 @@ void setup()
 
   disp.begin();
 
-  xTaskCreate(updateTask, "main_task", 4096, NULL, 2, NULL);
+  xTaskCreate(updateTask, "main_task", 4096, NULL, 12, NULL);
 }
 
 void loop()
@@ -128,7 +128,7 @@ static void updateTask(void* param)
       disp.setMessage(discord.getLatestMessage());
     }
 
-    vTaskDelay(250);
+    vTaskDelay(50);
     utils.resetWatchdog();
   }
 }
