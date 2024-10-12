@@ -150,7 +150,7 @@ bool Discord::checkForMessages()
       }
       latestDiscordPayload = payload;
       firstRun = false;
-      console.log.println("[DISCORD] New messages available");
+      // console.log.println("[DISCORD] New messages available");
     }
 
     // Trim to get valid JSON content
@@ -190,7 +190,7 @@ bool Discord::checkForMessages()
         }
         latestMessage = discordEntry;
         newMessageFlag = true;
-        console.log.printf("[DISCORD] Latest Message from [%s]: %s\n", sender.c_str(), latestMessage.c_str());
+        console.log.printf("[DISCORD] New Message received from [%s]: %s\n", sender.c_str(), latestMessage.c_str());
         foundMessage = true;
         client.stop();
         return true;
@@ -206,10 +206,14 @@ bool Discord::checkForMessages()
 
             if(Utils::getUnixTime() - EVENT_VALIDITY_TIME <= timestamp)    // Check if the event is still valid
             {
+              if(latestEvent.type == event && latestEvent.timestamp == timestamp)    // Ignore the event if it's the same as the last one
+              {
+                break;
+              }
               latestEvent = Event(event, timestamp);
               newEventFlag = true;
               foundEvent = true;
-              console.log.printf("[DISCORD] Latest Event from [%s]: %s\n", devices[myDeviceIndex].receiveEventsFrom[j], event.c_str());
+              console.log.printf("[DISCORD] New Event received from [%s]: %s\n", devices[myDeviceIndex].receiveEventsFrom[j], event.c_str());
               break;
             }
           }

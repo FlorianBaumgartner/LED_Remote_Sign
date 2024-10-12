@@ -109,7 +109,7 @@ void setup()
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(0, 0, 255));
+  matrix.setTextColor(matrix.Color(255, 0, 255));
 
   discord.begin();
 

@@ -51,7 +51,7 @@ void GithubOTA::begin(const char* repo, const char* currentFwVersion)
 
   xTaskCreate(updateTask, "github", 8096, this, 1, NULL);
   console.log.println("[GITHUB_OTA] Started");
-  console.log.printf("[GITHUB_OTA] Booting v%s\n", _currentFwVersion.toString().c_str());
+  console.log.printf("[GITHUB_OTA] Booting %s\n", _currentFwVersion.toString().c_str());
 }
 
 Firmware GithubOTA::decodeFirmwareString(const char* version)
@@ -131,7 +131,7 @@ bool GithubOTA::checkForUpdates()
     _progress = 0;
 
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-    console.log.printf("[GITHUB_OTA] Update started: v%s -> v%s\n", _currentFwVersion.toString().c_str(), _latestFwVersion.toString().c_str());
+    console.log.printf("[GITHUB_OTA] Update started: %s -> %s\n", _currentFwVersion.toString().c_str(), _latestFwVersion.toString().c_str());
 
     httpUpdate.onStart([]() {
       _updateInProgress = true;

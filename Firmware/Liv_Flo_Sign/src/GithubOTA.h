@@ -43,11 +43,9 @@ class Firmware
   uint8_t major = 0;
   uint8_t minor = 0;
   uint8_t patch = 0;
-  String& toString()
+  String toString()
   {
-    static String version;
-    version = String(major) + "." + String(minor) + "." + String(patch);
-    return version;
+    return "v" + String(major) + "." + String(minor) + "." + String(patch);
   }
 };
 
