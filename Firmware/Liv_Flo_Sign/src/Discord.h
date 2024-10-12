@@ -42,7 +42,14 @@
 #define PHONE_FLO                 "PHONE_FLO"
 
 
-#define DISCORD_UPDATE_INTERVAL   0.25    // [s]  Interval to check for new messages
+// Message strcuture: "Sender:Message"
+// Example message: "PHONE_LIV:Hello World! ✨"
+
+// Event structure: "Sender_UnixTimestamp:Event"
+// Example event: "AC6EBB03F784_1633363200:ButtonTrigger"
+
+
+#define DISCORD_UPDATE_INTERVAL   0.5    // [s]  Interval to check for new messages
 #define EVENT_VALIDITY_TIME       10      // [s]  Time within an event is seen as new and therefore valid
 
 class Devices
@@ -59,6 +66,14 @@ class Devices
   const int receiveEventsFromCount;
 };
 
+class Event
+{
+ public:
+  Event(String type, uint32_t timestamp) : type(type), timestamp(timestamp) {}
+  String type;
+  uint32_t timestamp;
+};
+
 class Discord
 {
  public:
@@ -73,6 +88,17 @@ class Discord
     return flag;
   }
 
+  bool getLatestEvent(String& event)
+  {
+    if(latestEvent.type.length() == 0)
+      return false;
+    event = latestEvent.type;
+    return true;
+  }
+
+  bool newEventAvailable() { return newEventFlag; }
+  void sendEvent(const char* event);
+
 
  private:
   String apiToken;
@@ -81,9 +107,11 @@ class Discord
   char myName[20];
   String latestDiscordPayload = "";
   String latestMessage = "";
-  String latestEvent = "";
+  Event latestEvent = Event("", 0);
+  String eventMessageToSend = "";
   int myDeviceIndex = -1;
   bool newMessageFlag = false;
+  bool newEventFlag = false;
 
 
   const Devices devices[2] = {Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD}, 1),
@@ -94,6 +122,7 @@ class Discord
 
   void getDeviceName(char* deviceName);
   bool checkForMessages();
+  bool checkForOutgoingEvents();
   static void updateTask(void* pvParameter);
 };
 

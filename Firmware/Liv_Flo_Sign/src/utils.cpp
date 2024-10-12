@@ -28,11 +28,12 @@ bool Utils::begin(void)
     else
     {
       country = Utils::Unknown;
-      console.log.println("[UTILS] Country: Unknown or other");
+      console.log.println("[UTILS] Country: Unknown");
     }
   }
 
   updateTimeZoneOffset();
+  console.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
   struct tm timeinfo;
   return getCurrentTime(timeinfo);
 }
@@ -54,6 +55,11 @@ uint32_t Utils::getUnixTime()
 
 bool Utils::getCurrentTime(struct tm& timeinfo)
 {
+  // Check if we are connected to the internet
+  if(WiFi.status() != WL_CONNECTED)
+  {
+    return false;
+  }
   if(!getLocalTime(&timeinfo))
   {
     console.error.println("[UTILS] Failed to obtain time");
@@ -80,7 +86,6 @@ bool Utils::updateTimeZoneOffset()
   raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
   dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
   http.end();
-  console.printf("[UTILS] Time Offset: %ld\n", raw_offset + dst_offset);
   configTime(raw_offset + dst_offset, 0, ntpServer);
   return true;
 }

@@ -82,6 +82,11 @@ bool Discord::begin()
   return true;
 }
 
+void Discord::sendEvent(const char* event)
+{
+  eventMessageToSend = String(myName) + "_" + String(Utils::getUnixTime()) + ":" + String(event);
+}
+
 void Discord::getDeviceName(char* deviceName)
 {
   uint64_t chipId = ESP.getEfuseMac();    // Unique ID from ESP32-C3 (12 bytes)
@@ -173,7 +178,8 @@ bool Discord::checkForMessages()
     for(int i = 0; i < doc.size(); i++)
     {
       String discordEntry = doc[i]["content"].as<String>();
-      if(discordEntry.startsWith(devices[myDeviceIndex].receiveMessagesFrom))    // Search for the last message entry that is meant for this device
+      if(discordEntry.startsWith(
+           (String(devices[myDeviceIndex].receiveMessagesFrom) + ":").c_str()))    // Search for the last message entry that is meant for this device
       {
         String sender = discordEntry.substring(0, discordEntry.indexOf(":"));
         latestMessage = discordEntry;
@@ -184,17 +190,24 @@ bool Discord::checkForMessages()
         client.stop();
         return true;
       }
-
       if(!foundEvent)    // While we are searching the latest message, we can also check for events
       {
         for(int j = 0; j < devices[myDeviceIndex].receiveEventsFromCount; j++)
         {
-          if(discordEntry.startsWith(devices[myDeviceIndex].receiveEventsFrom[j]))
+          if((String(discordEntry.startsWith(devices[myDeviceIndex].receiveEventsFrom[j]) + "_")).c_str())
           {
-            console.log.printf("[DISCORD] Received event: %s\n", discordEntry.c_str());
-            latestEvent = discordEntry;
-            foundEvent = true;
-            break;
+            String sender = discordEntry.substring(0, discordEntry.indexOf("_"));
+            uint32_t timestamp = discordEntry.substring(discordEntry.indexOf("_") + 1, discordEntry.indexOf(":")).toInt();
+            String event = discordEntry.substring(discordEntry.indexOf(":") + 1);
+
+            if(Utils::getUnixTime() - timestamp <= EVENT_VALIDITY_TIME)    // Check EVENT_VALIDITY_TIME seconds if the event is still valid
+            {
+              latestEvent = Event(event, timestamp);
+              newEventFlag = true;
+              foundEvent = true;
+              console.log.printf("[DISCORD] Latest Event from [%s]: %s\n", sender.c_str(), event.c_str());
+              break;
+            }
           }
         }
       }
@@ -210,13 +223,66 @@ bool Discord::checkForMessages()
   return true;
 }
 
+bool Discord::checkForOutgoingEvents()
+{
+  if(eventMessageToSend.length() == 0)
+  {
+    return false;
+  }
+
+  WiFiClientSecure client;
+  client.setInsecure();    // Using insecure connection for testing
+  if(!client.connect(discordHost, httpsPort))
+  {
+    console.error.println("[DISCORD] Connection to Discord failed!");
+    return false;
+  }
+
+  String payload = "{\"content\":\"" + eventMessageToSend + "\"}";
+  String apiUrlWithLimit = apiUrl + "&limit=" + String(Devices::maxMessageCountPerRequest);
+
+  client.print(String("POST ") + apiUrlWithLimit + " HTTP/1.1\r\n" + "Host: " + discordHost + "\r\n" + "Authorization: Bot " + apiToken + "\r\n" +
+               "User-Agent: ESP32\r\n" + "Content-Type: application/json\r\n" + "Content-Length: " + payload.length() + "\r\n" +
+               "Connection: close\r\n\r\n" + payload);
+
+  while(client.connected())    // Read the response header
+  {
+    String line = client.readStringUntil('\n');
+    if(line == "\r")
+    {
+      break;
+    }
+  }
+
+  String response;
+  while(client.connected() || client.available())
+  {
+    response += client.readString();
+  }
+  if(!response.startsWith("24d"))    // Not really sure
+  {
+    console.error.printf("[DISCORD] Failed to send event: %s\n", response.c_str());
+    client.stop();
+    return false;
+  }
+  console.ok.printf("[DISCORD] Event sent: %s\n", eventMessageToSend.c_str());
+  client.stop();
+  eventMessageToSend = "";
+  return true;
+}
+
+
 void Discord::updateTask(void* param)
 {
   Discord* ref = (Discord*)param;
   while(true)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
-    ref->checkForMessages();    // Check is server is available and if an update is available
+    if(WiFi.status() == WL_CONNECTED)
+    {
+      ref->checkForOutgoingEvents();    // Check if there are events to send
+      ref->checkForMessages();          // Check is server is available and if an update is available
+    }
     vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / DISCORD_UPDATE_INTERVAL);
   }
   vTaskDelete(NULL);

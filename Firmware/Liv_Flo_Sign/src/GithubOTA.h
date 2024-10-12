@@ -35,7 +35,7 @@
 
 #include <Arduino.h>
 
-#define FIRMWARE_UPDATE_INTERVAL 1    // [s]  Interval to check for updates
+#define FIRMWARE_UPDATE_INTERVAL 10    // [s]  Interval to check for updates
 
 struct Firmware
 {

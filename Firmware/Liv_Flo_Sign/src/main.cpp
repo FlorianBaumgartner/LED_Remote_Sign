@@ -48,19 +48,16 @@
 #include "utils.h"
 
 
-#define REPO_URL       "florianbaumgartner/led_remote_sign"
+#define LED_RGB_PIN  8
+#define BTN_PIN      9
+#define LED_PIN      10
+
+#define TOTAL_LEDS   480
+#define LED_MATRIX_H 5
+#define LED_MATRIX_W TOTAL_LEDS / LED_MATRIX_H
 
 
-#define LED            10
-#define BLINK_INTERVAL 1000
-#define LED_RGB_PIN    8
-
-#define TOTAL_LEDS     480
-#define LED_MATRIX_H   5
-#define LED_MATRIX_W   TOTAL_LEDS / LED_MATRIX_H
-
-
-WiFiManager wm;
+WiFiManager wm(console.log);
 Discord discord;
 GithubOTA githubOTA;
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN,
@@ -74,19 +71,24 @@ void setup()
 {
   console.begin();
 
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, LOW);
+  pinMode(BTN_PIN, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 
   // Get reset reason
   esp_reset_reason_t resetReason = esp_reset_reason();
   const char* resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                 "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
 
-  //wm.resetSettings();     // reset settings - wipe credentials for testing
+  if(digitalRead(BTN_PIN) == LOW)
+  {
+    console.warning.println("[MAIN] Resetting settings...");
+    wm.resetSettings();
+  }
 
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
   wm.setConfigPortalBlocking(false);
-  wm.setConfigPortalTimeout(60);
+  // wm.setConfigPortalTimeout(60);
   if(wm.autoConnect("Liv Flo Sign"))
   {
     console.ok.println("[MAIN] Connected...yeey :)");
@@ -101,11 +103,6 @@ void setup()
 
   Utils::begin();
   console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());
-  struct tm timeinfo;
-  Utils::getCurrentTime(timeinfo);
-  console.log.printf("[MAIN] Current time: %02d.%02d.%04d %02d:%02d:%02d\n", timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900,
-                     timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
 
   matrix.begin();
   matrix.setRotation(2);
@@ -124,6 +121,22 @@ void loop()
 {
   wm.process();
   vTaskDelay(10);
+
+  // static uint32_t t = 0;
+  // if (millis() - t >= 1000)
+  // {
+  //   t = millis();
+  //   console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());
+  // }
+
+  static bool btnOld = false, btnNew = false;
+  btnOld = btnNew;
+  btnNew = !digitalRead(BTN_PIN);
+  if(btnOld && !btnNew)
+  {
+    console.log.println("[MAIN] Button pressed");
+    discord.sendEvent("Button pressed");
+  }
 }
 
 void scrollTextNonBlocking(const char* text, int speed)
