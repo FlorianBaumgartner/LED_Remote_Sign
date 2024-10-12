@@ -37,11 +37,18 @@
 
 #define FIRMWARE_UPDATE_INTERVAL 10    // [s]  Interval to check for updates
 
-struct Firmware
+class Firmware
 {
+ public:
   uint8_t major = 0;
   uint8_t minor = 0;
   uint8_t patch = 0;
+  String& toString()
+  {
+    static String version;
+    version = String(major) + "." + String(minor) + "." + String(patch);
+    return version;
+  }
 };
 
 class GithubOTA
@@ -73,7 +80,6 @@ class GithubOTA
   Firmware decodeFirmwareString(const char* version);
   int compareFirmware(Firmware a, Firmware b);    // Returns 1 if a > b, -1 if a < b, 0 if a == b
   bool checkForUpdates();
-  const char* FimrwareVersionToString(Firmware& fw);
 
   static void updateTask(void* pvParameter);
 };
