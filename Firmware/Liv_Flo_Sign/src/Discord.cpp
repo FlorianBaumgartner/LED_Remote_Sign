@@ -150,7 +150,7 @@ bool Discord::checkForMessages()
       }
       latestDiscordPayload = payload;
       firstRun = false;
-      // console.log.println("[DISCORD] New messages available");
+      console.log.println("[DISCORD] New messages available");
     }
 
     // Trim to get valid JSON content
@@ -190,7 +190,8 @@ bool Discord::checkForMessages()
         }
         latestMessage = discordEntry;
         newMessageFlag = true;
-        console.log.printf("[DISCORD] New Message received from [%s]: %s\n", sender.c_str(), latestMessage.c_str());
+        console[COLOR_MAGENTA].printf("[DISCORD] New Message received from [%s]: %s\n", sender.c_str(), latestMessage.c_str());
+        console[COLOR_DEFAULT].print("");
         foundMessage = true;
         client.stop();
         return true;
@@ -213,7 +214,8 @@ bool Discord::checkForMessages()
               latestEvent = Event(event, timestamp);
               newEventFlag = true;
               foundEvent = true;
-              console.log.printf("[DISCORD] New Event received from [%s]: %s\n", devices[myDeviceIndex].receiveEventsFrom[j], event.c_str());
+              console[COLOR_CYAN].printf("[DISCORD] New Event received from [%s]: %s\n", devices[myDeviceIndex].receiveEventsFrom[j], event.c_str());
+              console[COLOR_DEFAULT].print("");
               break;
             }
           }

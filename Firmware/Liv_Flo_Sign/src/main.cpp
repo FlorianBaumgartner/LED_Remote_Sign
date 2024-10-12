@@ -40,6 +40,7 @@
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
 
+#include "../fonts/Grand9K_Pixel8_Modified.h"
 
 #define LED_RGB_PIN  8
 #define BTN_PIN      9
@@ -75,6 +76,7 @@ void setup()
   matrix.begin();
   matrix.setRotation(2);
   matrix.setTextSize(1);
+  matrix.setFont(&Grand9K_Pixel8pt7bModified);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
   matrix.setTextColor(matrix.Color(0, 0, 255));
@@ -93,7 +95,7 @@ void scrollTextNonBlocking(const char* text, int speed)
   const int len = strlen(text) * 6;
 
   matrix.fillScreen(0);
-  matrix.setCursor(x, -2);
+  matrix.setCursor(x, 4);
   matrix.print(text);
   static uint32_t tShift = 0;
   if(millis() - tShift >= speed)
@@ -115,8 +117,11 @@ static void updateTask(void* param)
     btnNew = !digitalRead(BTN_PIN);
     if(!btnOld && btnNew)
     {
-      console.log.println("[MAIN] Button pressed");
-      discord.sendEvent("Button pressed");
+      static uint16_t counter = 0;
+      char buffer[60];
+      sprintf(buffer, "Button Pressed: %d", counter++);
+      console.log.printf("%s\n", buffer);
+      discord.sendEvent(buffer);
     }
 
     if(githubOTA.updateInProgress())
