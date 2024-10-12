@@ -87,13 +87,13 @@ void loop()
   static bool btnOld = false, btnNew = false;
   btnOld = btnNew;
   btnNew = !digitalRead(BTN_PIN);
-  if(btnOld && !btnNew)
+  if(!btnOld && btnNew)
   {
     console.log.println("[MAIN] Button pressed");
     discord.sendEvent("Button pressed");
   }
 
-  vTaskDelay(100);
+  vTaskDelay(10);
 }
 
 void scrollTextNonBlocking(const char* text, int speed)
