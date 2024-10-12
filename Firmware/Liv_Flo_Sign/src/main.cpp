@@ -31,21 +31,14 @@
  ******************************************************************************/
 
 #include <Arduino.h>
+#include "Discord.h"
 #include "GithubOTA.h"
 #include "console.h"
+#include "utils.h"
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
-
-#include <ArduinoOTA.h>
-#include <ESPmDNS.h>
-#include <WiFi.h>
-#include <WiFiManager.h>
-#include <WiFiUdp.h>
-
-#include "Discord.h"
-#include "utils.h"
 
 
 #define LED_RGB_PIN  8
@@ -57,7 +50,7 @@
 #define LED_MATRIX_W TOTAL_LEDS / LED_MATRIX_H
 
 
-WiFiManager wm(console.log);
+Utils utils;
 Discord discord;
 GithubOTA githubOTA;
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN,
@@ -69,66 +62,28 @@ static void updateTask(void* param);
 
 void setup()
 {
-  console.begin();
-
   pinMode(BTN_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
-  // Get reset reason
-  esp_reset_reason_t resetReason = esp_reset_reason();
-  const char* resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
-                                "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
+  console.begin();
+  utils.begin();
+  discord.begin();
+  githubOTA.begin(REPO_URL);
 
-  if(digitalRead(BTN_PIN) == LOW)
-  {
-    console.warning.println("[MAIN] Resetting settings...");
-    wm.resetSettings();
-  }
-
-  WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
-  wm.setConfigPortalBlocking(false);
-  // wm.setConfigPortalTimeout(60);
-  if(wm.autoConnect("Liv Flo Sign"))
-  {
-    console.ok.println("[MAIN] Connected...yeey :)");
-  }
-  else
-  {
-    console.warning.println("[MAIN] Configportal running");
-  }
-
-  console.log.printf("[MAIN] Reset reason: %s\n", resetReasons[resetReason]);
-
-
-  Utils::begin();
-  console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());
 
   matrix.begin();
   matrix.setRotation(2);
   matrix.setTextSize(1);
   matrix.setTextWrap(false);
   matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(255, 0, 255));
+  matrix.setTextColor(matrix.Color(0, 0, 255));
 
-  discord.begin();
-
-  githubOTA.begin(REPO_URL);
   xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);
 }
 
 void loop()
 {
-  wm.process();
-  vTaskDelay(10);
-
-  // static uint32_t t = 0;
-  // if (millis() - t >= 1000)
-  // {
-  //   t = millis();
-  //   console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());
-  // }
-
   static bool btnOld = false, btnNew = false;
   btnOld = btnNew;
   btnNew = !digitalRead(BTN_PIN);
@@ -137,6 +92,8 @@ void loop()
     console.log.println("[MAIN] Button pressed");
     discord.sendEvent("Button pressed");
   }
+
+  vTaskDelay(100);
 }
 
 void scrollTextNonBlocking(const char* text, int speed)

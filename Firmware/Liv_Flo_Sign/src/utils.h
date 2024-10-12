@@ -35,6 +35,7 @@
 #define UTILS_H
 
 #include <Arduino.h>
+#include <WiFiManager.h>
 
 class Utils
 {
@@ -46,18 +47,29 @@ class Utils
     Unknown = 2
   };
 
+  static constexpr const char* WIFI_STA_SSID = "Liv Flo Sign";
+  static constexpr const float UTILS_UPDATE_RATE = 2.0;    // [Hz]  Interval to check for internet connection and time update
+  static const char* resetReasons[];
+
   static bool begin(void);
-  static uint32_t getUnixTime();   // GMT+0000
-  static bool getCurrentTime(struct tm& timeinfo);   // Local time
+  static uint32_t getUnixTime();                      // GMT+0000
+  static bool getCurrentTime(struct tm& timeinfo);    // Local time
   static bool isDaylightSavingTime() { return dst_offset != 0; }
   static Country getCountry() { return country; }
+  static bool getConnectionState() { return connectionState; }
+  static void resetSettings() { wm.resetSettings(); }
 
-  private:
-    static Country country;
-    static int32_t raw_offset;
-    static int32_t dst_offset;
+ private:
+  static WiFiManager wm;
 
-    static bool updateTimeZoneOffset();
+  static Country country;
+  static int32_t raw_offset;
+  static int32_t dst_offset;
+
+  static bool connectionState;
+
+  static bool updateTimeZoneOffset();
+  static void updateTask(void* pvParameter);
 };
 
 #endif

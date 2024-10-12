@@ -1,41 +1,39 @@
 #include "utils.h"
 #include <WiFi.h>
 #include <time.h>
+#include "HTTPClient.h"
 #include "console.h"
 #include "esp_wifi.h"
 
-#include "HTTPClient.h"
-
+WiFiManager Utils::wm(console.log);
 Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
+bool Utils::connectionState = false;
+const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
+                                     "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
+
 
 bool Utils::begin(void)
 {
-  wifi_country_t myCountry;
-  if(esp_wifi_get_country(&myCountry) == ESP_OK)
+  esp_reset_reason_t resetReason = esp_reset_reason();
+  console.log.printf("[UTILS] Reset reason: %s\n", resetReasons[resetReason]);
+
+  WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
+  wm.setConfigPortalBlocking(false);
+  // wm.setConfigPortalTimeout(60);
+  if(wm.autoConnect(WIFI_STA_SSID))
   {
-    if(strncmp(myCountry.cc, "CH", 2) == 0)
-    {
-      country = Utils::Switzerland;
-      console.log.println("[UTILS] Country: Switzerland");
-    }
-    else if(strncmp(myCountry.cc, "US", 2) == 0)
-    {
-      country = Utils::USA;
-      console.log.println("[UTILS] Country: USA");
-    }
-    else
-    {
-      country = Utils::Unknown;
-      console.log.println("[UTILS] Country: Unknown");
-    }
+    console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
+  }
+  else
+  {
+    console.warning.println("[UTILS] Configportal running");
   }
 
-  updateTimeZoneOffset();
-  console.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
-  struct tm timeinfo;
-  return getCurrentTime(timeinfo);
+  connectionState = false;
+  xTaskCreate(updateTask, "utils", 2048, NULL, 10, NULL);
+  return true;
 }
 
 uint32_t Utils::getUnixTime()
@@ -88,4 +86,60 @@ bool Utils::updateTimeZoneOffset()
   http.end();
   configTime(raw_offset + dst_offset, 0, ntpServer);
   return true;
+}
+
+void Utils::updateTask(void* pvParameter)
+{
+  Utils* ref = (Utils*)pvParameter;
+  static bool connectionStateOld = false;
+  static uint32_t t = 0;
+
+  while(true)
+  {
+    TickType_t task_last_tick = xTaskGetTickCount();
+    wm.process();    // Keep the WifiManager responsive
+
+    if(millis() - t >= 1000 / UTILS_UPDATE_RATE)
+    {
+      t = millis();
+
+      connectionStateOld = connectionState;
+      connectionState = WiFi.status() == WL_CONNECTED;
+      if(!connectionStateOld && connectionState)
+      {
+        console.ok.println("[UTILS] Connected to WiFi");
+        static bool firstRun = true;
+
+        wifi_country_t myCountry;
+        if(esp_wifi_get_country(&myCountry) == ESP_OK)
+        {
+          if(strncmp(myCountry.cc, "CH", 2) == 0)
+          {
+            country = Utils::Switzerland;
+            console.log.println("[UTILS] Country: Switzerland");
+          }
+          else if(strncmp(myCountry.cc, "US", 2) == 0)
+          {
+            country = Utils::USA;
+            console.log.println("[UTILS] Country: USA");
+          }
+          else
+          {
+            country = Utils::Unknown;
+            console.log.println("[UTILS] Country: Unknown");
+          }
+        }
+        updateTimeZoneOffset();
+        console.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
+        struct tm timeinfo;
+        getCurrentTime(timeinfo);
+      }
+      else if(connectionStateOld && !connectionState)
+      {
+        console.warning.println("[UTILS] Disconnected from WiFi");
+      }
+    }
+
+    vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(10));    // 10ms delay keep the WifiManager responsive
+  }
 }

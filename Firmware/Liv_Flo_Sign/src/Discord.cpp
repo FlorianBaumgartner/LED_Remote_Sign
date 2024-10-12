@@ -77,7 +77,7 @@ bool Discord::begin()
   apiUrl = unscrambleKey(DISCORD_API_URL, sizeof(DISCORD_API_URL) - 1);
   apiToken = unscrambleKey(DISCORD_BOT_TOKEN, sizeof(DISCORD_BOT_TOKEN) - 1);
 
-  xTaskCreate(updateTask, "discord", 8096, this, 1, NULL);
+  xTaskCreate(updateTask, "discord", 8096, this, 5, NULL);
   console.ok.println("[DISCORD] Started");
   return true;
 }

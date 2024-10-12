@@ -49,7 +49,7 @@ void GithubOTA::begin(const char* repo, const char* currentFwVersion)
   _repo = repo;
   _currentFwVersion = decodeFirmwareString(currentFwVersion);
 
-  xTaskCreate(updateTask, "github", 8096, this, 1, NULL);
+  xTaskCreate(updateTask, "github", 8096, this, 5, NULL);
   console.log.println("[GITHUB_OTA] Started");
   console.log.printf("[GITHUB_OTA] Booting %s\n", _currentFwVersion.toString().c_str());
 }
