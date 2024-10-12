@@ -99,7 +99,7 @@ void setup()
   }
 
   console.log.printf("[MAIN] Reset reason: %s\n", resetReasons[resetReason]);
-  console.log.println("[MAIN] Booting: v" FIRMWARE_VERSION);
+
 
   Utils::begin();
   console.log.printf("[MAIN] Unix time: %d\n", Utils::getUnixTime());

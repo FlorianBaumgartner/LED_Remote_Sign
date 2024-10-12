@@ -283,7 +283,7 @@ void Discord::updateTask(void* param)
       ref->checkForOutgoingEvents();    // Check if there are events to send
       ref->checkForMessages();          // Check is server is available and if an update is available
     }
-    vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / DISCORD_UPDATE_INTERVAL);
+    vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 * DISCORD_UPDATE_INTERVAL);
   }
   vTaskDelete(NULL);
 }
