@@ -77,14 +77,14 @@ bool Discord::begin()
   apiUrl = unscrambleKey(DISCORD_API_URL, sizeof(DISCORD_API_URL) - 1);
   apiToken = unscrambleKey(DISCORD_BOT_TOKEN, sizeof(DISCORD_BOT_TOKEN) - 1);
 
-  xTaskCreate(updateTask, "discord", 8096, this, 5, NULL);
+  xTaskCreate(updateTask, "discord", 8096, this, 1, NULL);
   console.ok.println("[DISCORD] Started");
   return true;
 }
 
 void Discord::sendEvent(const char* event)
 {
-  eventMessageToSend = String(myName) + "_" + String(Utils::getUnixTime()) + ":" + String(event);
+  eventMessageToSend = String(event);
 }
 
 void Discord::getDeviceName(char* deviceName)
@@ -106,10 +106,10 @@ bool Discord::checkForMessages()
 
   while(!foundMessage)
   {
-    if(chuckCount > 0)    // If we are in the second chunk, we need to load the next chunk
-    {
-      console.log.println("[DISCORD] Message not found in this chunk, loading next chunk.");
-    }
+    // if(chuckCount > 0)    // If we are in the second chunk, we need to load the next chunk
+    // {
+    //   console.log.println("[DISCORD] Message not found in this chunk, loading next chunk.");
+    // }
 
     String apiUrlWithLimit = apiUrl + "&limit=" + String(Devices::maxMessageCountPerRequest);
     if(lastMessageId.length() > 0)    // If there's a last message ID, use it to fetch older messages
@@ -182,8 +182,13 @@ bool Discord::checkForMessages()
            (String(devices[myDeviceIndex].receiveMessagesFrom) + ":").c_str()))    // Search for the last message entry that is meant for this device
       {
         String sender = discordEntry.substring(0, discordEntry.indexOf(":"));
+        discordEntry.remove(0, strlen(devices[myDeviceIndex].receiveMessagesFrom) + 1);    // Remove the sender from the message
+        if(discordEntry == latestMessage)    // If the message is the same as the last one, we don't need to process it
+        {
+          client.stop();
+          return false;
+        }
         latestMessage = discordEntry;
-        latestMessage.remove(0, strlen(devices[myDeviceIndex].receiveMessagesFrom) + 1);    // Remove the sender from the message
         newMessageFlag = true;
         console.log.printf("[DISCORD] Latest Message from [%s]: %s\n", sender.c_str(), latestMessage.c_str());
         foundMessage = true;
@@ -194,18 +199,17 @@ bool Discord::checkForMessages()
       {
         for(int j = 0; j < devices[myDeviceIndex].receiveEventsFromCount; j++)
         {
-          if((String(discordEntry.startsWith(devices[myDeviceIndex].receiveEventsFrom[j]) + "_")).c_str())
+          if(discordEntry.startsWith((String(devices[myDeviceIndex].receiveEventsFrom[j]) + "_").c_str()))    // Search for the last event entry
           {
-            String sender = discordEntry.substring(0, discordEntry.indexOf("_"));
             uint32_t timestamp = discordEntry.substring(discordEntry.indexOf("_") + 1, discordEntry.indexOf(":")).toInt();
             String event = discordEntry.substring(discordEntry.indexOf(":") + 1);
 
-            if(Utils::getUnixTime() - timestamp <= EVENT_VALIDITY_TIME)    // Check EVENT_VALIDITY_TIME seconds if the event is still valid
+            if(Utils::getUnixTime() - EVENT_VALIDITY_TIME <= timestamp)    // Check if the event is still valid
             {
               latestEvent = Event(event, timestamp);
               newEventFlag = true;
               foundEvent = true;
-              console.log.printf("[DISCORD] Latest Event from [%s]: %s\n", sender.c_str(), event.c_str());
+              console.log.printf("[DISCORD] Latest Event from [%s]: %s\n", devices[myDeviceIndex].receiveEventsFrom[j], event.c_str());
               break;
             }
           }
@@ -237,8 +241,8 @@ bool Discord::checkForOutgoingEvents()
     console.error.println("[DISCORD] Connection to Discord failed!");
     return false;
   }
-
-  String payload = "{\"content\":\"" + eventMessageToSend + "\"}";
+  String eventString = String(myName) + "_" + String(Utils::getUnixTime()) + ":" + eventMessageToSend;
+  String payload = "{\"content\":\"" + eventString + "\"}";
   String apiUrlWithLimit = apiUrl + "&limit=" + String(Devices::maxMessageCountPerRequest);
 
   client.print(String("POST ") + apiUrlWithLimit + " HTTP/1.1\r\n" + "Host: " + discordHost + "\r\n" + "Authorization: Bot " + apiToken + "\r\n" +
@@ -259,12 +263,12 @@ bool Discord::checkForOutgoingEvents()
   {
     response += client.readString();
   }
-  if(!response.startsWith("24d"))    // Not really sure
-  {
-    console.error.printf("[DISCORD] Failed to send event: %s\n", response.c_str());
-    client.stop();
-    return false;
-  }
+  // if(!response.startsWith("24d"))    // Not really sure
+  // {
+  //   console.error.printf("[DISCORD] Failed to send event: %s\n", response.c_str());
+  //   client.stop();
+  //   return false;
+  // }
   console.ok.printf("[DISCORD] Event sent: %s\n", eventMessageToSend.c_str());
   client.stop();
   eventMessageToSend = "";

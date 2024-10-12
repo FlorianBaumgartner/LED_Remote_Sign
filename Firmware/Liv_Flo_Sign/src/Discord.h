@@ -49,8 +49,8 @@
 // Example event: "AC6EBB03F784_1633363200:ButtonTrigger"
 
 
-#define DISCORD_UPDATE_INTERVAL   0.5    // [s]  Interval to check for new messages
-#define EVENT_VALIDITY_TIME       10      // [s]  Time within an event is seen as new and therefore valid
+#define DISCORD_UPDATE_INTERVAL   1.0    // [s]  Interval to check for new messages
+#define EVENT_VALIDITY_TIME       20      // [s]  Time within an event is seen as new and therefore valid
 
 class Devices
 {
