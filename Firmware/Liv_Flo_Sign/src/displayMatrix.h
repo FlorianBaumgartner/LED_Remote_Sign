@@ -1,11 +1,11 @@
 /******************************************************************************
- * file    GithubOTA.h
+ * file    displayMatrix.h
  *******************************************************************************
- * brief   Firmware Update via Github Releases
+ * brief   Handles the LED Matrix Display
  *******************************************************************************
  * author  Florian Baumgartner
  * version 1.0
- * date    2024-10-04
+ * date    2024-10-12
  *******************************************************************************
  * MIT License
  *
@@ -30,57 +30,47 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#ifndef GITHUBOTA_H
-#define GITHUBOTA_H
+#ifndef DISPLAYMATRIX_H
+#define DISPLAYMATRIX_H
 
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoMatrix.h>
+#include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 
-#define FIRMWARE_UPDATE_INTERVAL 10    // [s]  Interval to check for updates
-
-class Firmware
+class DisplayMatrix
 {
  public:
-  uint8_t major = 0;
-  uint8_t minor = 0;
-  uint8_t patch = 0;
-  String toString()
+  static constexpr const uint8_t DEFAULT_BRIGHNESS = 3;
+  static constexpr const uint8_t MAX_BRIGHTNESS = 50;
+  static constexpr const uint8_t MATRIX_UPDATE_RATE = 30;    // [Hz]
+
+  enum State
   {
-    return "v" + String(major) + "." + String(minor) + "." + String(patch);
-  }
-};
+    BOOTING,
+    IDLE,
+    DISCONNECTED,
+    UPDATING
+  };
 
-class GithubOTA
-{
- public:
-  GithubOTA();
-  void begin(const char* repo, const char* currentFwVersion = FIRMWARE_VERSION);
-  bool isServerAvailable() { return _serverAvailable; }
-  bool updateAvailable() { return _updateAvailable && !_updateInProgress; }
-  void startUpdate() { _startUpdate = true; }
-  uint16_t getProgress() { return _progress; }
-  bool updateInProgress() { return _updateInProgress; }
-  void updateAborted() { _updateAborted = true; }
-  Firmware getCurrentFirmwareVersion() { return _currentFwVersion; }
-  Firmware getLatestFirmwareVersion() { return _latestFwVersion; }
+  DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
+      : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
+  {}
+
+  void begin(void);
+  void setBrightness(uint8_t brightness) { matrix.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
+  void setState(State newState) { state = newState; }
+  void setUpdatePercentage(uint8_t percentage) { updatePercentage = percentage; }
+  void setMessage(const String& msg) { message = msg; }
+
 
  private:
-  const char* _repo;
-  String firmwareUrl;
-  Firmware _latestFwVersion;
-  Firmware _currentFwVersion;
-  static bool _serverAvailable;
-  static bool _updateAvailable;
-  static bool _startUpdate;
-  static bool _updateAborted;
-  static bool _updateInProgress;
-  static uint16_t _progress;
-
-  Firmware decodeFirmwareString(const char* version);
-  int compareFirmware(Firmware a, Firmware b);    // Returns 1 if a > b, -1 if a < b, 0 if a == b
-  bool checkForUpdates();
+  Adafruit_NeoMatrix matrix;
+  State state = BOOTING;
+  uint8_t updatePercentage = 0;
+  String message = "";
 
   static void updateTask(void* pvParameter);
 };
-
 
 #endif

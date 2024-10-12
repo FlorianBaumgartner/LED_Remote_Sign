@@ -36,6 +36,7 @@
 
 #include <Arduino.h>
 #include <WiFiManager.h>
+#include <esp_task_wdt.h>
 
 class Utils
 {
@@ -58,6 +59,7 @@ class Utils
   static Country getCountry() { return country; }
   static bool getConnectionState() { return connectionState; }
   static void resetSettings() { wm.resetSettings(); }
+  static void resetWatchdog() { esp_task_wdt_reset(); }
 
  private:
   static WiFiManager wm;

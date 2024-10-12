@@ -150,7 +150,7 @@ bool Discord::checkForMessages()
       }
       latestDiscordPayload = payload;
       firstRun = false;
-      console.log.println("[DISCORD] New messages available");
+      // console.log.println("[DISCORD] New messages available");
     }
 
     // Trim to get valid JSON content

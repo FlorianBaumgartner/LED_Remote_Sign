@@ -35,12 +35,8 @@
 #include "GithubOTA.h"
 #include "console.h"
 #include "utils.h"
+#include "displayMatrix.h"
 
-#include <Adafruit_GFX.h>
-#include <Adafruit_NeoMatrix.h>
-#include <Adafruit_NeoPixel.h>
-
-#include "../fonts/Grand9K_Pixel8_Modified.h"
 
 #define LED_RGB_PIN  8
 #define BTN_PIN      9
@@ -54,11 +50,10 @@
 Utils utils;
 Discord discord;
 GithubOTA githubOTA;
-Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN,
-                                               NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
+DisplayMatrix disp(LED_RGB_PIN, LED_MATRIX_H, LED_MATRIX_W);
 
 
-void scrollTextNonBlocking(const char* text, int speed);
+// void scrollTextNonBlocking(const char* text, int speed);
 static void updateTask(void* param);
 
 void setup()
@@ -67,21 +62,15 @@ void setup()
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
+  
   console.begin();
   utils.begin();
   discord.begin();
   githubOTA.begin(REPO_URL);
 
+  disp.begin();
 
-  matrix.begin();
-  matrix.setRotation(2);
-  matrix.setTextSize(1);
-  matrix.setFont(&Grand9K_Pixel8pt7bModified);
-  matrix.setTextWrap(false);
-  matrix.setBrightness(3);
-  matrix.setTextColor(matrix.Color(0, 0, 255));
-
-  xTaskCreate(updateTask, "main_task", 4096, NULL, 20, NULL);
+  xTaskCreate(updateTask, "main_task", 4096, NULL, 2, NULL);
 }
 
 void loop()
@@ -89,24 +78,24 @@ void loop()
   vTaskDelay(100);
 }
 
-void scrollTextNonBlocking(const char* text, int speed)
-{
-  static int x = 5;
-  const int len = strlen(text) * 6;
+// void scrollTextNonBlocking(const char* text, int speed)
+// {
+//   static int x = 5;
+//   const int len = strlen(text) * 6;
 
-  matrix.fillScreen(0);
-  matrix.setCursor(x, 4);
-  matrix.print(text);
-  static uint32_t tShift = 0;
-  if(millis() - tShift >= speed)
-  {
-    tShift = millis();
-    if(--x < -len)
-    {
-      x = 5;
-    }
-  }
-}
+//   disp.fillScreen(0);
+//   disp.setCursor(x, 4);
+//   disp.print(text);
+//   static uint32_t tShift = 0;
+//   if(millis() - tShift >= speed)
+//   {
+//     tShift = millis();
+//     if(--x < -len)
+//     {
+//       x = 5;
+//     }
+//   }
+// }
 
 static void updateTask(void* param)
 {
@@ -124,24 +113,22 @@ static void updateTask(void* param)
       discord.sendEvent(buffer);
     }
 
-    if(githubOTA.updateInProgress())
-    {
-      matrix.fillScreen(0);
-      uint8_t progress = githubOTA.getProgress();
-      matrix.fillRect(0, 0, (progress / 25) + 1, 5, matrix.Color(255, 0, 0));
-    }
-    else if(githubOTA.updateAvailable())
+    if(githubOTA.updateAvailable())
     {
       githubOTA.startUpdate();
     }
+    if(githubOTA.updateInProgress())
+    {
+      disp.setState(DisplayMatrix::UPDATING);
+      disp.setUpdatePercentage(githubOTA.getProgress());
+    }
     else
     {
-      char fwVersion[16];
-      sprintf(fwVersion, "v%d.%d.%d", githubOTA.getCurrentFirmwareVersion().major, githubOTA.getCurrentFirmwareVersion().minor,
-              githubOTA.getCurrentFirmwareVersion().patch);
-      scrollTextNonBlocking(fwVersion, 50);
+      disp.setState(DisplayMatrix::IDLE);
+      disp.setMessage(discord.getLatestMessage());
     }
-    matrix.show();
-    vTaskDelay(30);
+
+    vTaskDelay(250);
+    utils.resetWatchdog();
   }
 }
