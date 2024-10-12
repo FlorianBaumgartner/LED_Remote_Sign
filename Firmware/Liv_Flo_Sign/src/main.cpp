@@ -84,16 +84,7 @@ void setup()
 
 void loop()
 {
-  static bool btnOld = false, btnNew = false;
-  btnOld = btnNew;
-  btnNew = !digitalRead(BTN_PIN);
-  if(!btnOld && btnNew)
-  {
-    console.log.println("[MAIN] Button pressed");
-    discord.sendEvent("Button pressed");
-  }
-
-  vTaskDelay(10);
+  vTaskDelay(100);
 }
 
 void scrollTextNonBlocking(const char* text, int speed)
@@ -119,6 +110,15 @@ static void updateTask(void* param)
 {
   while(true)
   {
+    static bool btnOld = false, btnNew = false;
+    btnOld = btnNew;
+    btnNew = !digitalRead(BTN_PIN);
+    if(!btnOld && btnNew)
+    {
+      console.log.println("[MAIN] Button pressed");
+      discord.sendEvent("Button pressed");
+    }
+
     if(githubOTA.updateInProgress())
     {
       matrix.fillScreen(0);
