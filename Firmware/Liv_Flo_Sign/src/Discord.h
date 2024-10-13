@@ -37,6 +37,7 @@
 
 #define ESP32C3_DEV_BOARD_RGB_LED "AC6EBB03F784"
 #define ESP32C3_DEV_BOARD_LCD     "542C474E76A0"
+#define ESP32S3_DEV_BOARD_BLING   "A869D87554DC"
 
 #define PHONE_LIV                 "PHONE_LIV"
 #define PHONE_FLO                 "PHONE_FLO"
@@ -115,8 +116,9 @@ class Discord
   bool outgoingEventFlag = false;
 
 
-  const Devices devices[2] = {Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD}, 1),
-                              Devices(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED}, 1)};
+  const Devices devices[3] = {Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
+                              Devices(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),
+                              Devices(ESP32S3_DEV_BOARD_BLING, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2)};
 
   constexpr static const int httpsPort = 443;
   constexpr static const char* discordHost = "discord.com";

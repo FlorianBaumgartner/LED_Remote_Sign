@@ -32,7 +32,7 @@ bool Utils::begin(void)
   }
 
   connectionState = false;
-  xTaskCreate(updateTask, "utils", 2048, NULL, 10, NULL);
+  xTaskCreate(updateTask, "utils", 4096, NULL, 10, NULL);
   return true;
 }
 

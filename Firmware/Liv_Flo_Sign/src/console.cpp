@@ -30,6 +30,8 @@
 * SOFTWARE.
 ******************************************************************************/
 
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+
 #include "console.h"
 
 bool Console::begin(void)
@@ -224,4 +226,6 @@ Console console(USBSerial);
 USBCDC USBSerial;
 Console console(USBSerial);
 #endif
+#endif
+
 #endif

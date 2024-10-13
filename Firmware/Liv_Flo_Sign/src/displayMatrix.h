@@ -53,9 +53,15 @@ class DisplayMatrix
     UPDATING
   };
 
-  DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
-      : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
-  {}
+  #ifdef CONFIG_IDF_TARGET_ESP32C3
+    DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
+        : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
+    {}
+  #elif CONFIG_IDF_TARGET_ESP32S3
+    DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
+        : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
+    {}
+  #endif
 
   void begin(void);
   void setBrightness(uint8_t brightness) { matrix.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }

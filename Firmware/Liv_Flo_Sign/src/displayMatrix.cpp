@@ -65,26 +65,26 @@ void DisplayMatrix::updateTask(void* pvParameter)
       {
         case DisplayMatrix::BOOTING:
           display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 4);
+          display->matrix.setCursor(0, 6);
           display->matrix.setTextColor(display->matrix.Color(255, 255, 255));
           display->matrix.print("Booting...");
           display->matrix.show();
           break;
         case DisplayMatrix::IDLE:
           //   display->matrix.fillScreen(0);
-          //   display->matrix.setCursor(0, 4);
+          //   display->matrix.setCursor(0, 6);
           //   display->matrix.print("IDLE");
           //   display->matrix.show();
           break;
         case DisplayMatrix::DISCONNECTED:
           display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 4);
+          display->matrix.setCursor(0, 6);
           display->matrix.print("DISCONNECTED");
           display->matrix.show();
           break;
         case DisplayMatrix::UPDATING:
           display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 4);
+          display->matrix.setCursor(0, 6);
           display->matrix.print("UPDATING");
           display->matrix.show();
           break;
@@ -100,7 +100,7 @@ void DisplayMatrix::updateTask(void* pvParameter)
       case DisplayMatrix::IDLE:
         // Udate the display with the message
         display->matrix.fillScreen(0);
-        display->matrix.setCursor(0, 4);
+        display->matrix.setCursor(0, 6);
         display->matrix.setTextColor(display->matrix.Color(0, 0, 255));
         display->matrix.print(display->message);
         display->matrix.show();
@@ -112,7 +112,7 @@ void DisplayMatrix::updateTask(void* pvParameter)
         {
           oldPercentage = display->updatePercentage;
           display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 4);
+          display->matrix.setCursor(0, 6);
           display->matrix.print("UPDATING");
           display->matrix.setCursor(0, 8);
           display->matrix.print(display->updatePercentage);

@@ -33,7 +33,7 @@
 #include "GithubOTA.h"
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
-#include <console.h>
+#include "utils.h"
 
 bool GithubOTA::_serverAvailable = false;
 bool GithubOTA::_updateAvailable = false;

@@ -1,0 +1,9 @@
+{
+	"usb_serial":"0",
+	"usb_vid":"0x239A",
+	"usb_pid":"0x80AB",
+	"led_brightness": 30,
+	"led_rgbw": false,
+	"led_count": 288,
+	"led_framerate": 50.0
+}

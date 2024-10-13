@@ -59,9 +59,29 @@ Preferences preferences;
 Adafruit_NeoMatrix matrix =
   Adafruit_NeoMatrix(40, 8, LED_PIN, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
 
+const uint8_t image_0[] = {
+  0,   0,   0,   255, 159, 0,   253, 215, 99,  253, 234, 142, 253, 217, 104, 246, 158, 8,   0,   0,   0,  255, 148, 10, 255, 213, 85,  255, 255, 164,
+  255, 255, 186, 255, 255, 167, 255, 217, 91,  246, 148, 16,  249, 161, 20,  233, 189, 59,  241, 224, 79, 255, 246, 88, 243, 226, 80,  232, 191, 61,
+  248, 163, 25,  226, 149, 27,  201, 156, 47,  206, 162, 30,  243, 210, 42,  207, 164, 31,  199, 154, 47, 228, 153, 29, 111, 195, 223, 168, 169, 135,
+  200, 171, 118, 208, 181, 127, 198, 167, 114, 169, 168, 131, 112, 196, 220, 47,  182, 245, 193, 137, 40, 198, 129, 22, 181, 120, 29,  198, 129, 21,
+  196, 139, 39,  49,  178, 241, 0,   0,   0,   234, 112, 0,   223, 134, 9,   223, 137, 11,  222, 135, 10, 229, 110, 0,  0,   0,   0};
+const uint8_t image_1[] = {
+  0,   0,   0,   248, 159, 25,  253, 213, 112, 253, 231, 154, 253, 217, 117, 249, 160, 33, 0,   0,   0,  247, 135, 15, 253, 206, 87, 255, 255, 161,
+  255, 253, 177, 255, 255, 163, 255, 210, 94,  248, 139, 18,  247, 150, 24,  255, 208, 68, 200, 161, 49, 236, 209, 70, 200, 160, 48, 255, 209, 69,
+  248, 154, 27,  239, 136, 16,  255, 158, 33,  237, 174, 38,  247, 203, 47,  237, 175, 39, 254, 158, 33, 241, 138, 18, 234, 130, 18, 249, 145, 27,
+  218, 148, 36,  219, 164, 43,  218, 149, 37,  250, 147, 28,  235, 133, 19,  227, 141, 30, 242, 178, 47, 241, 158, 30, 235, 149, 24, 243, 161, 31,
+  244, 184, 50,  224, 137, 28,  225, 135, 26,  240, 179, 50,  224, 138, 19,  223, 120, 8,  223, 136, 19, 238, 175, 47, 219, 122, 20};
+const uint8_t image_2[] = {
+  213, 41, 35, 237, 121, 111, 241, 117, 106, 201, 10, 0,  236, 118, 109, 237, 129, 120, 210, 44, 31, 226, 73, 64, 255, 143, 134, 255, 122, 112,
+  237, 67, 56, 255, 129, 120, 255, 151, 143, 229, 78, 67, 222, 53,  41,  255, 73,  60,  253, 67, 53, 255, 68, 54, 254, 69,  55,  255, 72,  59,
+  235, 56, 43, 195, 20,  10,  240, 41,  28,  255, 58, 44, 255, 64,  49,  255, 60,  45,  251, 44, 30, 224, 24, 13, 85,  0,   0,   197, 17,  7,
+  251, 41, 29, 255, 64,  50,  255, 51,  38,  217, 22, 12, 127, 0,   0,   0,   0,   0,   148, 0,  0,  203, 18, 9,  243, 32,  21,  215, 24,  15,
+  139, 0,  0,  0,   0,   0,   0,   0,   0,   0,   0,  0,  162, 11,  0,   182, 11,  3,   153, 0,  0,  0,   0,  0,  0,   0,   0};
+
 
 void checkDiscordForMessages();
 void scrollText(void* pvParameters);
+void drawRGB24Bitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h);
 
 void setup()
 {
@@ -76,7 +96,7 @@ void setup()
 
   matrix.begin();
   matrix.setTextWrap(false);
-  matrix.setBrightness(4);
+  matrix.setBrightness(10);
   matrix.setRotation(2);
   matrix.fillScreen(0);
   matrix.setTextColor(matrix.Color(255, 0, 255));
@@ -214,7 +234,16 @@ void scrollText(void* pvParameters)
     matrix.setCursor(scrollPosition, 0);               // Set cursor position
 
     // Draw the current message
-    matrix.print(currentMessage.c_str());
+    // matrix.print(currentMessage.c_str());
+
+
+    // Draw the 3 images (emojis) the are 7x7 pixels
+    drawRGB24Bitmap(0, 0, image_0, 7, 7);
+    drawRGB24Bitmap(12, 0, image_1, 7, 7);
+    drawRGB24Bitmap(24, 0, image_2, 7, 7);
+
+
+
     matrix.show();
 
     // Update the scroll position
@@ -227,5 +256,20 @@ void scrollText(void* pvParameters)
     }
 
     vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / 30);
+  }
+}
+
+void drawRGB24Bitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h)
+{
+  uint8_t r, g, b;
+  for(int16_t j = 0; j < h; j++)
+  {
+    for(int16_t i = 0; i < w; i++)
+    {
+      r = pgm_read_byte(bitmap + 3 * (j * w + i));
+      g = pgm_read_byte(bitmap + 3 * (j * w + i) + 1);
+      b = pgm_read_byte(bitmap + 3 * (j * w + i) + 2);
+      matrix.drawPixel(x + i, y + j, matrix.Color(r, g, b));
+    }
   }
 }

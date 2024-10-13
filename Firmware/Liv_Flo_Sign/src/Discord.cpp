@@ -45,7 +45,7 @@ Discord::Discord() {}
 bool Discord::begin()
 {
   getDeviceName(myName);
-  console.log.printf("[DISCORD] ESP32-C3 Serial Number: %s\n", myName);
+  console.log.printf("[DISCORD] ESP32 Serial Number: %s\n", myName);
 
   for(int i = 0; i < sizeof(devices) / sizeof(devices[0]); i++)    // Retreive myDeviceIndex from devices
   {
