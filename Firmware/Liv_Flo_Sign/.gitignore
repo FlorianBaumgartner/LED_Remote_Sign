@@ -16,5 +16,5 @@
 # Ignore specific tool scripts
 tools/scramble_keys.py
 
-/tools/EmojiDownloader/raw
+/tools/EmojiDownloader/export
 /tools/EmojiDownloader/conv
