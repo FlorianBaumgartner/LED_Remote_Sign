@@ -10,17 +10,19 @@ font_path = '/System/Library/Fonts/Apple Color Emoji.ttc'
 
 font_sizes = range(5, 1000)
 
+# Create export folder
+export_folder_path = base_path / 'export'
+export_folder_path.mkdir(exist_ok=True)
+
+# Delete all files in the export folder
+for filename in export_folder_path.iterdir():
+    filename.unlink()
+
 for font_size in font_sizes: # Font size for the emojis
     try:
         background_color = (0, 0, 0)  # Black background
         image_size = (font_size, font_size)  # Same as font size
         emoji_position = (0, 0)  # Position to start at top-left (centered in 40x40)
-
-        
-
-        # Create export folder
-        export_folder_path = base_path / 'export'
-        export_folder_path.mkdir(exist_ok=True)
 
         # Load the font
         try:
@@ -34,7 +36,7 @@ for font_size in font_sizes: # Font size for the emojis
             emojis = [line.strip() for line in f if line.strip()]
 
         # Process each emoji in the list
-        for emoji in emojis:
+        for i, emoji in enumerate(emojis):
             # Create a new blank image with an RGB mode and black background
             im = Image.new("RGB", image_size, background_color)
             draw = ImageDraw.Draw(im)
@@ -46,7 +48,7 @@ for font_size in font_sizes: # Font size for the emojis
             hex_filename = '-'.join(f'{ord(char):x}' for char in emoji if ord(char) not in [0x200D, 0xFE0F])
 
             # Save the image as PNG with the hex code representation as filename
-            output_file_path = export_folder_path / f'{hex_filename}.png'
+            output_file_path = export_folder_path / f'{i:03d}_{hex_filename}.png'
             im.save(output_file_path)
 
             # print(f"Saved {output_file_path}")

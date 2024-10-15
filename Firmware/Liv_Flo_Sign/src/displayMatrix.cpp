@@ -36,7 +36,6 @@
 void DisplayMatrix::begin(void)
 {
   matrix.begin();
-  matrix.setRotation(2);
   matrix.setTextSize(1);
   matrix.setFont(&Grand9K_Pixel8pt7bModified);
   matrix.setTextWrap(false);
@@ -46,6 +45,24 @@ void DisplayMatrix::begin(void)
   matrix.show();
 
   xTaskCreate(updateTask, "matrix", 4096, this, 15, NULL);
+}
+
+
+void DisplayMatrix::drawEmoji(uint8_t x, uint8_t y, const uint8_t* emojiUtf8)
+{
+  // Emoji has size of 7x7
+  // for(uint8_t i = 0; i < 7; i++)
+  // {
+  //   for(uint8_t j = 0; j < 7; j++)
+  //   {
+  //     if(emojiUtf8[i] & (1 << j))
+  //     {
+  //       matrix.setPassThruColor(displatextColor);
+  //       matrix.drawPixel(x + j, y + i, matrix.Color(255, 255, 255));
+  //     }
+  //   }
+  // }
+  matrix.setPassThruColor();
 }
 
 
@@ -99,10 +116,13 @@ void DisplayMatrix::updateTask(void* pvParameter)
         break;
       case DisplayMatrix::IDLE:
         // Udate the display with the message
+
+
         display->matrix.fillScreen(0);
         display->matrix.setCursor(0, 6);
-        display->matrix.setTextColor(display->matrix.Color(0, 0, 255));
+        display->matrix.setPassThruColor(display->textColor);
         display->matrix.print(display->message);
+        display->matrix.setPassThruColor();
         display->matrix.show();
         break;
       case DisplayMatrix::DISCONNECTED:

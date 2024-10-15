@@ -65,13 +65,14 @@ void setup()
   matrix.setBrightness(10);
   matrix.setTextColor(matrix.Color(255, 0, 255));
 
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
 
 
   //wm.resetSettings();     // reset settings - wipe credentials for testing
 
   wm.setConfigPortalBlocking(false);
-  wm.setConfigPortalTimeout(60);
+  // wm.setConfigPortalTimeout(60);
   // automatically connect using saved credentials if they exist
   // If connection fails it starts an access point with the specified name
   if(wm.autoConnect("AutoConnectAP"))

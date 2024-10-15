@@ -30,7 +30,9 @@
 * SOFTWARE.
 ******************************************************************************/
 
-#ifdef CONFIG_IDF_TARGET_ESP32C3
+#include "sdkconfig.h"
+
+#if CONFIG_IDF_TARGET_ESP32C3
 
 #include "console.h"
 

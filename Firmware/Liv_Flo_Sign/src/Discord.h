@@ -35,6 +35,8 @@
 
 #include <Arduino.h>
 
+#define LIV_FLO_SIGN_0            "D4E2D49E9EF0"    // Flo's sign (based in USA)
+
 #define ESP32C3_DEV_BOARD_RGB_LED "AC6EBB03F784"
 #define ESP32C3_DEV_BOARD_LCD     "542C474E76A0"
 #define ESP32S3_DEV_BOARD_BLING   "A869D87554DC"
@@ -51,7 +53,7 @@
 
 
 #define DISCORD_UPDATE_INTERVAL   1.0    // [s]  Interval to check for new messages
-#define EVENT_VALIDITY_TIME       20      // [s]  Time within an event is seen as new and therefore valid
+#define EVENT_VALIDITY_TIME       20     // [s]  Time within an event is seen as new and therefore valid
 
 class Devices
 {
@@ -116,7 +118,9 @@ class Discord
   bool outgoingEventFlag = false;
 
 
-  const Devices devices[3] = {Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
+  const Devices devices[4] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
+
+                              Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
                               Devices(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),
                               Devices(ESP32S3_DEV_BOARD_BLING, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2)};
 

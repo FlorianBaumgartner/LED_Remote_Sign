@@ -41,9 +41,11 @@
 class DisplayMatrix
 {
  public:
-  static constexpr const uint8_t DEFAULT_BRIGHNESS = 3;
+  static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 50;
   static constexpr const uint8_t MATRIX_UPDATE_RATE = 30;    // [Hz]
+  static constexpr const uint32_t TEXT_DEFAULT_COLOR = 0xFC5400;
+
 
   enum State
   {
@@ -53,15 +55,9 @@ class DisplayMatrix
     UPDATING
   };
 
-  #ifdef CONFIG_IDF_TARGET_ESP32C3
-    DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
-        : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
-    {}
-  #elif CONFIG_IDF_TARGET_ESP32S3
-    DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
-        : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
-    {}
-  #endif
+  DisplayMatrix(uint8_t pin, int matrixHeight = 7, int matrixWidth = 40)
+      : matrix(matrixWidth, matrixHeight, pin, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800)
+  {}
 
   void begin(void);
   void setBrightness(uint8_t brightness) { matrix.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
@@ -75,7 +71,9 @@ class DisplayMatrix
   State state = BOOTING;
   uint8_t updatePercentage = 0;
   String message = "";
+  uint32_t textColor = TEXT_DEFAULT_COLOR;
 
+  void drawEmoji(uint8_t x, uint8_t y, const uint8_t* emojiUtf8);
   static void updateTask(void* pvParameter);
 };
 

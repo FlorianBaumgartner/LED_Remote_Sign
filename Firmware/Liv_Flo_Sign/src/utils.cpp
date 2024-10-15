@@ -19,6 +19,7 @@ bool Utils::begin(void)
   esp_reset_reason_t resetReason = esp_reset_reason();
   console.log.printf("[UTILS] Reset reason: %s\n", resetReasons[resetReason]);
 
+  WiFi.setTxPower(WIFI_POWER_19_5dBm); 
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
   wm.setConfigPortalBlocking(false);
   // wm.setConfigPortalTimeout(60);
