@@ -31,6 +31,7 @@ if __name__ == "__main__":
     
 
     size = 7
+    gamma = 2.75
     header_file_path = root / "emoji_bitmaps.h"
 
     with open(header_file_path, 'w', encoding="utf-8") as header_file:
@@ -44,6 +45,9 @@ if __name__ == "__main__":
                 image = Image.open(root / "export" / filename)
                 new_image = image.resize((size, size))
                 new_image = new_image.convert('RGB')  # Ensure it's in RGB mode
+
+                # Apply gamma correction
+                new_image = new_image.point(lambda p: int(255 * (p / 255) ** gamma))
 
                 # Save the resized image in the "conv" folder
                 new_image.save(root / "conv" / filename)

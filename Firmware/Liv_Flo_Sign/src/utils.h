@@ -57,7 +57,7 @@ class Utils
   static bool getCurrentTime(struct tm& timeinfo);    // Local time
   static bool isDaylightSavingTime() { return dst_offset != 0; }
   static Country getCountry() { return country; }
-  static bool getConnectionState() { return connectionState; }
+  static bool getConnectionState() { return connectionState; }    // True if connected to WiFi
   static void resetSettings() { wm.resetSettings(); }
   static void resetWatchdog() { esp_task_wdt_reset(); }
 

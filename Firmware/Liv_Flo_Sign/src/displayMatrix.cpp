@@ -49,8 +49,7 @@ void DisplayMatrix::begin(void)
   xTaskCreate(updateTask, "matrix", 4096, this, 15, NULL);
 }
 
-
-size_t DisplayMatrix::printMessage(const String& msg, int offset)
+size_t DisplayMatrix::printMessage(const String& msg, uint32_t color, int offset)
 {
   size_t textWidth = 0;
   int utf8_code_length = 0;
@@ -58,6 +57,7 @@ size_t DisplayMatrix::printMessage(const String& msg, int offset)
   for(int i = 0; i < msg.length(); i++)
   {
     matrix.setCursor(textWidth + offset, 6);
+    matrix.setPassThruColor(color);    // Set the pass-thru color for the text
     int emojiWidth = 0;
 
     if((msg[i] & 0x80) == 0x00)    // Check if the character is ASCII
@@ -91,14 +91,12 @@ size_t DisplayMatrix::printMessage(const String& msg, int offset)
       else if(utf8_code_index == 3 && utf8_code_length == 3)
       {
         uint32_t unicode_index = (msg[i - 2] & 0x0F) << 12 | (msg[i - 1] & 0x3F) << 6 | (msg[i] & 0x3F);
-        // console.log.printf("[DISP_MAT] Loading 3-byte UTF-8 character: emoji_%x\n", unicode_index);
-        emojiWidth = drawEmoji(textWidth + offset, 0, unicode_index)? 8 : 0;
+        emojiWidth = drawEmoji(textWidth + offset, 0, unicode_index) ? 8 : 0;
       }
       else if(utf8_code_index == 4 && utf8_code_length == 4)
       {
         uint32_t unicode_index = (msg[i - 3] & 0x07) << 18 | (msg[i - 2] & 0x3F) << 12 | (msg[i - 1] & 0x3F) << 6 | (msg[i] & 0x3F);
-        // console.log.printf("[DISP_MAT] Loading 4-byte UTF-8 character: emoji_%x\n", unicode_index);
-        emojiWidth = drawEmoji(textWidth + offset, 0, unicode_index)? 8 : 0;
+        emojiWidth = drawEmoji(textWidth + offset, 0, unicode_index) ? 8 : 0;
       }
     }
     else if((msg[i] & 0xE0) == 0xC0)    // Check if the character is a 2-byte UTF-8 character
@@ -122,16 +120,17 @@ size_t DisplayMatrix::printMessage(const String& msg, int offset)
       utf8_code_length = 0;
       console.warning.printf("[DISP_MAT] Invalid UTF-8 character: %02X\n", msg[i]);
     }
-    textWidth = matrix.getCursorX() + emojiWidth;
+    textWidth = matrix.getCursorX() + emojiWidth - offset;
   }
+  matrix.setPassThruColor();    // Reset the pass-thru color
   return textWidth;
 }
 
 
-bool DisplayMatrix::drawEmoji(uint8_t x, uint8_t y, uint32_t unicode_index)
+bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
 {
   bool found = false;
-  for(int i = 0; i < emoji_count; i++)   // Search for emoji based on unicode index
+  for(int i = 0; i < emoji_count; i++)    // Search for emoji based on unicode index
   {
     if(emojis[i].unicode == unicode_index)
     {
@@ -149,7 +148,17 @@ bool DisplayMatrix::drawEmoji(uint8_t x, uint8_t y, uint32_t unicode_index)
   }
   if(!found)
   {
-    if(unicode_index != 0xFE0F)   // Ignore the "⬢" character of the Heart Rate Emoji (U+1F497)
+    const uint32_t blackList[] = {0xFE0F, 0x1F3FB};
+    bool blackListed = false;
+    for(int i = 0; i < sizeof(blackList) / sizeof(blackList[0]); i++)
+    {
+      if(unicode_index == blackList[i])
+      {
+        blackListed = true;
+        break;
+      }
+    }
+    if(!blackListed)
     {
       char unicode_char[4];
       unicode_char[0] = (unicode_index >> 16) & 0xFF;
@@ -161,6 +170,31 @@ bool DisplayMatrix::drawEmoji(uint8_t x, uint8_t y, uint32_t unicode_index)
   }
   matrix.setPassThruColor();
   return found;
+}
+
+
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;      // Declare the portMUX_TYPE globally or within the relevant scope
+
+void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
+{
+  matrix.fillScreen(0);
+  float deltaT = (float)(millis() - scrollStartTime) / 1000.0;
+  scrollPosition = matrix.width() - (int)(deltaT * SCROLL_SPEED);
+  if(force || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * SCROLL_SPEED))    // Check if the message has scrolled out of the screen
+  {
+    scrollPosition = matrix.width();      // Reset scroll position to the start
+    scrollStartTime = millis();           // Reset the start time
+    if(msg != currentMessage || force)    // Check if the message has changed or we're forcing a reset
+    {
+      currentMessage = msg;    // Update the current message
+      textWidth = printMessage(currentMessage, color, scrollPosition);
+      // console.log.printf("[DISP_MAT] Start scrolling new message: %s\n", currentMessage.c_str());
+    }
+    return;    // Exit after updating message and position
+  }
+  printMessage(currentMessage, color, scrollPosition);    // Continue printing the current message at the updated scroll positions
+  // Enter critical section to prevent the matrix from updating while we're scrolling
+  matrix.show();
 }
 
 
@@ -176,6 +210,7 @@ void DisplayMatrix::updateTask(void* pvParameter)
     if(display->state != lastState)
     {
       lastState = display->state;
+      console.log.printf("[DISP_MAT] State changed to %d\n", display->state);
       switch(display->state)
       {
         case DisplayMatrix::BOOTING:
@@ -192,10 +227,10 @@ void DisplayMatrix::updateTask(void* pvParameter)
           //   display->matrix.show();
           break;
         case DisplayMatrix::DISCONNECTED:
-          display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 6);
-          display->matrix.print("DISCONNECTED");
-          display->matrix.show();
+          // display->matrix.fillScreen(0);
+          // display->matrix.setCursor(0, 6);
+          // display->matrix.print("DISCONNECTED");
+          // display->matrix.show();
           break;
         case DisplayMatrix::UPDATING:
           display->matrix.fillScreen(0);
@@ -213,17 +248,10 @@ void DisplayMatrix::updateTask(void* pvParameter)
       case DisplayMatrix::BOOTING:
         break;
       case DisplayMatrix::IDLE:
-        // Udate the display with the message
-
-
-        display->matrix.fillScreen(0);
-        display->matrix.setCursor(0, 6);
-        display->matrix.setPassThruColor(display->textColor);
-        display->printMessage(display->message, 0);
-        display->matrix.setPassThruColor();
-        display->matrix.show();
+        display->scrollMessage(display->newMessage, display->textColor);
         break;
       case DisplayMatrix::DISCONNECTED:
+        display->scrollMessage("Disconnected 😡 das isch blöd!", 0xFF0000);
         break;
       case DisplayMatrix::UPDATING:
         if(display->updatePercentage != oldPercentage)

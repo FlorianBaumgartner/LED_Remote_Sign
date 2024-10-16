@@ -35,7 +35,8 @@
 
 #include <Arduino.h>
 
-#define LIV_FLO_SIGN_0            "D4E2D49E9EF0"    // Flo's sign (based in USA)
+#define LIV_FLO_SIGN_0            "D4E2D49E9EF0"    // Flo's sign (based in the appartment)
+#define LIV_FLO_SIGN_1            "CCD0D49E9EF0"    // Flo's sign (based in the lab)
 
 #define ESP32C3_DEV_BOARD_RGB_LED "AC6EBB03F784"
 #define ESP32C3_DEV_BOARD_LCD     "542C474E76A0"
@@ -118,7 +119,8 @@ class Discord
   bool outgoingEventFlag = false;
 
 
-  const Devices devices[4] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
+  const Devices devices[5] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
+                              Devices(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2),
 
                               Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
                               Devices(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),

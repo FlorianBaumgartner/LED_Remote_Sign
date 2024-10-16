@@ -257,24 +257,24 @@ void loop()
 {
   vTaskDelay(100);
 
-  if(vcnl4020.isProxReady())
-  {
-    console.log.print("Prox: ");
-    console.log.println(vcnl4020.readProximity());
-    vcnl4020.clearInterrupts(                                                             // Clear Interrupts
-      true /* Proximity Ready */, false /* ALS Ready */, false /* Threshold Low */, false /* Threshold High */
-    );
-  }
+  // if(vcnl4020.isProxReady())
+  // {
+  //   console.log.print("Prox: ");
+  //   console.log.println(vcnl4020.readProximity());
+  //   vcnl4020.clearInterrupts(                                                             // Clear Interrupts
+  //     true /* Proximity Ready */, false /* ALS Ready */, false /* Threshold Low */, false /* Threshold High */
+  //   );
+  // }
 
-  if(vcnl4020.isAmbientReady())
-  {
-    console.log.print("Ambient: ");
-    console.log.print(vcnl4020.readAmbient());
-    console.log.print(", ");
-    vcnl4020.clearInterrupts(                                                             // Clear Interrupts
-      false /* Proximity Ready */, true /* ALS Ready */, false /* Threshold Low */, false /* Threshold High */
-    );
-  }
+  // if(vcnl4020.isAmbientReady())
+  // {
+  //   console.log.print("Ambient: ");
+  //   console.log.print(vcnl4020.readAmbient());
+  //   console.log.print(", ");
+  //   vcnl4020.clearInterrupts(                                                             // Clear Interrupts
+  //     false /* Proximity Ready */, true /* ALS Ready */, false /* Threshold Low */, false /* Threshold High */
+  //   );
+  // }
 }
 
 // void scrollTextNonBlocking(const char* text, int speed)
@@ -312,19 +312,26 @@ static void updateTask(void* param)
       discord.sendEvent(buffer);
     }
 
-    if(githubOTA.updateAvailable())
+    if(utils.getConnectionState())
     {
-      githubOTA.startUpdate();
-    }
-    if(githubOTA.updateInProgress())
-    {
-      disp.setState(DisplayMatrix::UPDATING);
-      disp.setUpdatePercentage(githubOTA.getProgress());
+      if(githubOTA.updateAvailable())
+      {
+        githubOTA.startUpdate();
+      }
+      if(githubOTA.updateInProgress())
+      {
+        disp.setState(DisplayMatrix::UPDATING);
+        disp.setUpdatePercentage(githubOTA.getProgress());
+      }
+      else
+      {
+        disp.setState(DisplayMatrix::IDLE);
+        disp.setMessage(discord.getLatestMessage());
+      }
     }
     else
     {
-      disp.setState(DisplayMatrix::IDLE);
-      disp.setMessage(discord.getLatestMessage());
+      disp.setState(DisplayMatrix::DISCONNECTED);
     }
 
     vTaskDelay(50);
