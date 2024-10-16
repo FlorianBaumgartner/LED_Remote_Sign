@@ -1358,4 +1358,40 @@ const uint8_t emoji_1f351[7][7][3] = {
   {{0x00, 0x00, 0x00}, {0x07, 0x04, 0x04}, {0x63, 0x29, 0x22}, {0xA7, 0x3C, 0x28}, {0x67, 0x29, 0x1F}, {0x09, 0x05, 0x05}, {0x00, 0x00, 0x00}},
 };
 
-#endif // EMOJI_BITMAPS_H
+struct Emoji
+{
+  uint32_t unicode;
+  const uint8_t (*data)[7][3];
+};
+
+const Emoji emojis[] = {
+  {0x0001F602, emoji_1f602}, {0x00002764, emoji_2764},  {0x0001F923, emoji_1f923}, {0x0001F44D, emoji_1f44d}, {0x0001F60D, emoji_1f60d},
+  {0x0001F97A, emoji_1f97a}, {0x0001F62D, emoji_1f62d}, {0x0001F60A, emoji_1f60a}, {0x0001F64F, emoji_1f64f}, {0x0001F618, emoji_1f618},
+  {0x0001F605, emoji_1f605}, {0x0001F914, emoji_1f914}, {0x0001F60E, emoji_1f60e}, {0x0001F929, emoji_1f929}, {0x0001F970, emoji_1f970},
+  {0x0001F60F, emoji_1f60f}, {0x0001F607, emoji_1f607}, {0x0001F972, emoji_1f972}, {0x0001F60B, emoji_1f60b}, {0x0001F610, emoji_1f610},
+  {0x0001F633, emoji_1f633}, {0x0001F973, emoji_1f973}, {0x0001F917, emoji_1f917}, {0x0001F624, emoji_1f624}, {0x0001F621, emoji_1f621},
+  {0x0001F480, emoji_1f480}, {0x0001F440, emoji_1f440}, {0x0001F62C, emoji_1f62c}, {0x0001F975, emoji_1f975}, {0x0001F976, emoji_1f976},
+  {0x0001F92E, emoji_1f92e}, {0x0001F44F, emoji_1f44f}, {0x0001F61C, emoji_1f61c}, {0x0001F924, emoji_1f924}, {0x0001F92B, emoji_1f92b},
+  {0x0001F634, emoji_1f634}, {0x0001F495, emoji_1f495}, {0x0001F496, emoji_1f496}, {0x0001F61B, emoji_1f61b}, {0x0001F643, emoji_1f643},
+  {0x0001F92A, emoji_1f92a}, {0x0001F608, emoji_1f608}, {0x0001F44C, emoji_1f44c}, {0x0001F614, emoji_1f614}, {0x0001F971, emoji_1f971},
+  {0x0001F910, emoji_1f910}, {0x0001F44B, emoji_1f44b}, {0x0001F911, emoji_1f911}, {0x0001F921, emoji_1f921}, {0x0001F4AA, emoji_1f4aa},
+  {0x0001F615, emoji_1f615}, {0x0001F62F, emoji_1f62f}, {0x0001F4A5, emoji_1f4a5}, {0x0001F389, emoji_1f389}, {0x0001F92F, emoji_1f92f},
+  {0x0001F483, emoji_1f483}, {0x0001F926, emoji_1f926}, {0x0001F937, emoji_1f937}, {0x00002728, emoji_2728},  {0x0001F61A, emoji_1f61a},
+  {0x0001F61F, emoji_1f61f}, {0x0001F9E1, emoji_1f9e1}, {0x0001F49B, emoji_1f49b}, {0x0001F49A, emoji_1f49a}, {0x0001F499, emoji_1f499},
+  {0x0001F49C, emoji_1f49c}, {0x0001F5A4, emoji_1f5a4}, {0x0001F90D, emoji_1f90d}, {0x0001F90E, emoji_1f90e}, {0x0001F631, emoji_1f631},
+  {0x0001F436, emoji_1f436}, {0x0001F91E, emoji_1f91e}, {0x0001F355, emoji_1f355}, {0x0001F382, emoji_1f382}, {0x0001F57A, emoji_1f57a},
+  {0x0001F339, emoji_1f339}, {0x0001F63B, emoji_1f63b}, {0x0001F4BC, emoji_1f4bc}, {0x0001F525, emoji_1f525}, {0x0001F4B0, emoji_1f4b0},
+  {0x0001F451, emoji_1f451}, {0x0001F9E0, emoji_1f9e0}, {0x0001F680, emoji_1f680}, {0x0001F47B, emoji_1f47b}, {0x0001F37B, emoji_1f37b},
+  {0x0001F933, emoji_1f933}, {0x0001F3B6, emoji_1f3b6}, {0x0001F4F1, emoji_1f4f1}, {0x0001F4A1, emoji_1f4a1}, {0x0001F4AF, emoji_1f4af},
+  {0x0001F3C6, emoji_1f3c6}, {0x0001F3C5, emoji_1f3c5}, {0x000026BD, emoji_26bd},  {0x0001F4F7, emoji_1f4f7}, {0x0001F3B5, emoji_1f3b5},
+  {0x0001F4A3, emoji_1f4a3}, {0x0001F984, emoji_1f984}, {0x0001F612, emoji_1f612}, {0x0001F6B4, emoji_1f6b4}, {0x0001F381, emoji_1f381},
+  {0x0001F377, emoji_1f377}, {0x0001F91D, emoji_1f91d}, {0x0001F36B, emoji_1f36b}, {0x0001F37E, emoji_1f37e}, {0x0001F942, emoji_1f942},
+  {0x0001F943, emoji_1f943}, {0x0001F37A, emoji_1f37a}, {0x0001FAD5, emoji_1fad5}, {0x0001F353, emoji_1f353}, {0x0001F34D, emoji_1f34d},
+  {0x0001F346, emoji_1f346}, {0x0001F4A6, emoji_1f4a6}, {0x0001F31F, emoji_1f31f}, {0x0001F4AB, emoji_1f4ab}, {0x00002B50, emoji_2b50},
+  {0x0001F31E, emoji_1f31e}, {0x0001F31D, emoji_1f31d}, {0x0001F31C, emoji_1f31c}, {0x0001F31B, emoji_1f31b}, {0x0001F315, emoji_1f315},
+  {0x0001F311, emoji_1f311}, {0x0001F319, emoji_1f319}, {0x0001F351, emoji_1f351},
+};
+
+const uint16_t emoji_count = 123;
+
+#endif    // EMOJI_BITMAPS_H

@@ -110,7 +110,7 @@ void setup()
   // Can also try: PROX_RATE_1_95_PER_S, PROX_RATE_3_9_PER_S, PROX_RATE_7_8_PER_S,
   // PROX_RATE_16_6_PER_S, PROX_RATE_31_2_PER_S, PROX_RATE_62_5_PER_S,
   // PROX_RATE_125_PER_S, PROX_RATE_250_PER_S
-  vcnl4020.setProxRate(PROX_RATE_16_6_PER_S);
+  vcnl4020.setProxRate(PROX_RATE_250_PER_S);
   console.log.print("Proximity Rate: ");
   switch(vcnl4020.getProxRate())
   {

@@ -76,6 +76,28 @@ if __name__ == "__main__":
                 
                 header_file.write("};\n\n")
 
+        
+        # Add global emoji table, contatining a uint32_t for the unicode index, and a pointer to the emoji bitmap 
+        header_file.write("struct Emoji {\n")
+        header_file.write("  uint32_t unicode;\n")
+        header_file.write("  const uint8_t (*data)[7][3];\n")
+        header_file.write("};\n\n")
+        header_file.write("const Emoji emojis[] = {\n")
+        for filename in sorted(os.listdir(root / "export")):
+            if filename.endswith(".png"):
+                emoji_name = filename.split('.')[0]
+                emoji_name = emoji_name[4:]  # Remove the index and underscore
+                code_points = emoji_name.split('-')
+                emoji_unicode = int(code_points[0], 16)
+                array_field_name = f"emoji_{emoji_name}"
+                array_field_name = array_field_name.replace('-', '_')
+                header_file.write(f"  {{0x{emoji_unicode:08X}, {array_field_name}}},\n")
+        header_file.write("};\n\n")
+
+        # Add COnstant that holds total emoji count
+        header_file.write(f"const uint16_t emoji_count = {len(os.listdir(root / 'export'))};\n\n")
+
+
         header_file.write("#endif // EMOJI_BITMAPS_H\n")
 
     print(f"Header file generated: {header_file_path}")

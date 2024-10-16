@@ -73,7 +73,8 @@ class DisplayMatrix
   String message = "";
   uint32_t textColor = TEXT_DEFAULT_COLOR;
 
-  void drawEmoji(uint8_t x, uint8_t y, const uint8_t* emojiUtf8);
+  size_t printMessage(const String& msg, int offset = 0);
+  bool drawEmoji(uint8_t x, uint8_t y, uint32_t unicode_index);
   static void updateTask(void* pvParameter);
 };
 

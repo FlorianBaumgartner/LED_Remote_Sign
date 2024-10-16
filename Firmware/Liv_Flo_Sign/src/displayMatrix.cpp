@@ -32,6 +32,8 @@
 
 #include "displayMatrix.h"
 #include "../fonts/Grand9K_Pixel8_Modified.h"
+#include "../tools/Emoji/emoji_bitmaps.h"
+#include "console.h"
 
 void DisplayMatrix::begin(void)
 {
@@ -48,21 +50,117 @@ void DisplayMatrix::begin(void)
 }
 
 
-void DisplayMatrix::drawEmoji(uint8_t x, uint8_t y, const uint8_t* emojiUtf8)
+size_t DisplayMatrix::printMessage(const String& msg, int offset)
 {
-  // Emoji has size of 7x7
-  // for(uint8_t i = 0; i < 7; i++)
-  // {
-  //   for(uint8_t j = 0; j < 7; j++)
-  //   {
-  //     if(emojiUtf8[i] & (1 << j))
-  //     {
-  //       matrix.setPassThruColor(displatextColor);
-  //       matrix.drawPixel(x + j, y + i, matrix.Color(255, 255, 255));
-  //     }
-  //   }
-  // }
+  size_t textWidth = 0;
+  int utf8_code_length = 0;
+  int utf8_code_index = 0;
+  for(int i = 0; i < msg.length(); i++)
+  {
+    matrix.setCursor(textWidth + offset, 6);
+    int emojiWidth = 0;
+
+    if((msg[i] & 0x80) == 0x00)    // Check if the character is ASCII
+    {
+      utf8_code_index = 0;
+      utf8_code_length = 0;
+      matrix.write(msg[i]);
+    }
+    else if((msg[i] & 0xC0) == 0x80)    // Check if the character is a continuation of a UTF-8 character
+    {
+      utf8_code_index++;
+      if(utf8_code_index == 1 && utf8_code_length == 1)
+      {
+        console.warning.printf("[DISP_MAT] Invalid UTF-8 continuation: %02X\n", msg[i]);
+      }
+      else if(utf8_code_index == 2 && utf8_code_length == 2)
+      {
+        if(msg[i - 1] == 0xC2)
+        {
+          matrix.write(msg[i]);
+        }
+        else if(msg[i - 1] == 0xC3)
+        {
+          matrix.write(msg[i] + 0x40);
+        }
+        else
+        {
+          console.warning.printf("[DISP_MAT] Invalid UTF-8 continuation: %02X\n", msg[i]);
+        }
+      }
+      else if(utf8_code_index == 3 && utf8_code_length == 3)
+      {
+        uint32_t unicode_index = (msg[i - 2] & 0x0F) << 12 | (msg[i - 1] & 0x3F) << 6 | (msg[i] & 0x3F);
+        // console.log.printf("[DISP_MAT] Loading 3-byte UTF-8 character: emoji_%x\n", unicode_index);
+        emojiWidth = drawEmoji(textWidth + offset, 0, unicode_index)? 8 : 0;
+      }
+      else if(utf8_code_index == 4 && utf8_code_length == 4)
+      {
+        uint32_t unicode_index = (msg[i - 3] & 0x07) << 18 | (msg[i - 2] & 0x3F) << 12 | (msg[i - 1] & 0x3F) << 6 | (msg[i] & 0x3F);
+        // console.log.printf("[DISP_MAT] Loading 4-byte UTF-8 character: emoji_%x\n", unicode_index);
+        emojiWidth = drawEmoji(textWidth + offset, 0, unicode_index)? 8 : 0;
+      }
+    }
+    else if((msg[i] & 0xE0) == 0xC0)    // Check if the character is a 2-byte UTF-8 character
+    {
+      utf8_code_length = 2;
+      utf8_code_index = 1;
+    }
+    else if((msg[i] & 0xF0) == 0xE0)    // Check if the character is a 3-byte UTF-8 character
+    {
+      utf8_code_length = 3;
+      utf8_code_index = 1;
+    }
+    else if((msg[i] & 0xF8) == 0xF0)    // Check if the character is a 4-byte UTF-8 character
+    {
+      utf8_code_length = 4;
+      utf8_code_index = 1;
+    }
+    else
+    {
+      utf8_code_index = 0;
+      utf8_code_length = 0;
+      console.warning.printf("[DISP_MAT] Invalid UTF-8 character: %02X\n", msg[i]);
+    }
+    textWidth = matrix.getCursorX() + emojiWidth;
+  }
+  return textWidth;
+}
+
+
+bool DisplayMatrix::drawEmoji(uint8_t x, uint8_t y, uint32_t unicode_index)
+{
+  bool found = false;
+  for(int i = 0; i < emoji_count; i++)   // Search for emoji based on unicode index
+  {
+    if(emojis[i].unicode == unicode_index)
+    {
+      found = true;
+      for(int j = 0; j < 7; j++)
+      {
+        for(int k = 0; k < 7; k++)
+        {
+          uint32_t color = emojis[i].data[j][k][0] << 16 | emojis[i].data[j][k][1] << 8 | emojis[i].data[j][k][2];
+          matrix.setPassThruColor(color);
+          matrix.drawPixel(x + k, y + j, color);
+        }
+      }
+    }
+  }
+  if(!found)
+  {
+    if(unicode_index != 0xFE0F)   // Ignore the "⬢" character of the Heart Rate Emoji (U+1F497)
+    {
+      char unicode_char[4];
+      unicode_char[0] = (unicode_index >> 16) & 0xFF;
+      unicode_char[1] = (unicode_index >> 8) & 0xFF;
+      unicode_char[2] = unicode_index & 0xFF;
+      unicode_char[3] = '\0';
+      console.warning.printf("[DISP_MAT] Emoji not found: emoji_%x (%s)\n", unicode_index, unicode_char);
+    }
+  }
   matrix.setPassThruColor();
+  return found;
 }
 
 
@@ -121,7 +219,7 @@ void DisplayMatrix::updateTask(void* pvParameter)
         display->matrix.fillScreen(0);
         display->matrix.setCursor(0, 6);
         display->matrix.setPassThruColor(display->textColor);
-        display->matrix.print(display->message);
+        display->printMessage(display->message, 0);
         display->matrix.setPassThruColor();
         display->matrix.show();
         break;
