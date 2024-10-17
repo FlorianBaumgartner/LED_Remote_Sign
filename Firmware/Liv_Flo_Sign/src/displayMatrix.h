@@ -43,9 +43,8 @@ class DisplayMatrix
  public:
   static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 50;
-  static constexpr const uint8_t MATRIX_UPDATE_RATE = 23;    // [Hz]
+  static constexpr const uint8_t MATRIX_UPDATE_RATE = 25;    // [Hz]
   static constexpr const uint32_t TEXT_DEFAULT_COLOR = 0xFC5400;
-  static constexpr const float SCROLL_SPEED = 23.0;            // Pixel per second (horizontal)
   static constexpr const float TEXT_BLANK_SPACE_TIME = 0.5;    // [s]  Time to wait before scrolling the next message
 
 
@@ -77,7 +76,7 @@ class DisplayMatrix
   uint32_t textColor = TEXT_DEFAULT_COLOR;
   int scrollPosition = matrix.width();
   int textWidth = 0;
-  uint32_t scrollStartTime = 0;
+  bool scrollTextNecessary = true;
 
   size_t printMessage(const String& msg, uint32_t color, int offset = 0);
   bool drawEmoji(int x, int y, uint32_t unicode_index);

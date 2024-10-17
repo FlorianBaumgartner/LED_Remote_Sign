@@ -173,27 +173,35 @@ bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
 }
 
 
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;      // Declare the portMUX_TYPE globally or within the relevant scope
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // Declare the portMUX_TYPE globally or within the relevant scope
 
 void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
 {
+  matrix.setPassThruColor(0);
   matrix.fillScreen(0);
-  float deltaT = (float)(millis() - scrollStartTime) / 1000.0;
-  scrollPosition = matrix.width() - (int)(deltaT * SCROLL_SPEED);
-  if(force || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * SCROLL_SPEED))    // Check if the message has scrolled out of the screen
+
+  if(!scrollTextNecessary || force || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * MATRIX_UPDATE_RATE))
   {
-    scrollPosition = matrix.width();      // Reset scroll position to the start
-    scrollStartTime = millis();           // Reset the start time
     if(msg != currentMessage || force)    // Check if the message has changed or we're forcing a reset
     {
       currentMessage = msg;    // Update the current message
       textWidth = printMessage(currentMessage, color, scrollPosition);
-      // console.log.printf("[DISP_MAT] Start scrolling new message: %s\n", currentMessage.c_str());
+      scrollTextNecessary = textWidth > matrix.width();    // Check if scrolling is necessary
     }
-    return;    // Exit after updating message and position
+    if(scrollTextNecessary)    // Only set the scroll position to the end if scrolling is necessary
+    {
+      scrollPosition = matrix.width();    // Reset scroll position to the start
+    }
+  }
+  if(scrollTextNecessary)    // Check if scrolling is necessary
+  {
+    scrollPosition--;
+  }
+  else
+  {
+    scrollPosition = (matrix.width() - textWidth) / 2;    // Center the text
   }
   printMessage(currentMessage, color, scrollPosition);    // Continue printing the current message at the updated scroll positions
-  // Enter critical section to prevent the matrix from updating while we're scrolling
   matrix.show();
 }
 
