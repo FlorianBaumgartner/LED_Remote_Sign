@@ -44,17 +44,23 @@ bool Sensor::begin(void)
   console.ok.printf("[SENSOR] VCNL4020 found (Product ID & Revision: 0x%02X)\n", vcnl4020.getProdRevision());
   vcnl4020.enable(false, false, false);    // Turn off all features for configuration
   vcnl4020.setOnDemand(false, false);
-  vcnl4020.setProxRate(PROX_RATE_250_PER_S);
   vcnl4020.setProxLEDmA(200);
+  vcnl4020.setProxRate(PROX_RATE_250_PER_S);
+  vcnl4020.setProxFrequency(PROX_FREQ_390_625_KHZ);
   vcnl4020.setAmbientRate(AMBIENT_RATE_10_SPS);
   vcnl4020.setAmbientAveraging(AVG_8_SAMPLES);
-  vcnl4020.setProxFrequency(PROX_FREQ_390_625_KHZ);
-  //   vcnl4020.setInterruptConfig(true, false, false, false , INT_COUNT_1);
   vcnl4020.enable(true, true, true);
-  //   vcnl4020.setOnDemand(false, false);
 
   xTaskCreate(updateTask, "sensor", 4096, this, 8, NULL);
   return true;
+}
+
+uint8_t Sensor::getAmbientBrightness(void)
+{
+  int val = constrain(ambientValueAvr, 0, AMB_VALUE_MAX);
+  float normalizedValue = (float)val / AMB_VALUE_MAX;
+  float scaledValue = pow(normalizedValue, AMB_POW_PARAM);
+  return (uint8_t)(scaledValue * 255);
 }
 
 void Sensor::updateTask(void* pvParameter)
@@ -64,22 +70,30 @@ void Sensor::updateTask(void* pvParameter)
   while(true)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
-    if(sensor->vcnl4020.isProxReady())
-    {
-      sensor->proxValue = sensor->vcnl4020.readProximity();
-      sensor->vcnl4020.clearInterrupts(true, false, false, false);    // Clear Interrupts
-    }
+
     if(sensor->vcnl4020.isAmbientReady())
     {
       sensor->ambientValue = sensor->vcnl4020.readAmbient();
       sensor->vcnl4020.clearInterrupts(false, true, false, false);    // Clear Interrupts
+      if(sensor->ambientValueAvr < 0)                                 // Initialize the exponential moving average
+      {
+        sensor->ambientValueAvr = sensor->ambientValue;
+      }
+      sensor->ambientValueAvr = sensor->ambientValue * Sensor::AMB_AVR_RATE + sensor->ambientValueAvr * (1 - Sensor::AMB_AVR_RATE);
     }
-
-    static uint32_t t = 0;
-    if(millis() - t > 1000)
+    if(sensor->vcnl4020.isProxReady())
     {
-      t = millis();
-      console.ok.printf("[SENSOR] Proximity: %d, Ambient: %d\n", sensor->proxValue, sensor->ambientValue);
+      sensor->proxValue = sensor->vcnl4020.readProximity();
+      sensor->vcnl4020.clearInterrupts(true, false, false, false);    // Clear Interrupts
+      if(sensor->proxValueAvr < 0)                                    // Initialize the exponential moving average
+      {
+        sensor->proxValueAvr = sensor->proxValue;
+      }
+      sensor->proxValueAvr = sensor->proxValue * Sensor::PROX_AVR_RATE + sensor->proxValueAvr * (1 - Sensor::PROX_AVR_RATE);
+      if(sensor->proxValue > sensor->proxValueAvr + Sensor::PROX_SNR_THRESHOLD)
+      {
+        sensor->proxEvent = true;
+      }
     }
 
     vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / SENSOR_UPDATE_RATE);

@@ -40,7 +40,7 @@
 
 #define LED_MATRIX_PIN   7
 #define LED_SIGNAL_PIN   8
-#define BTN_PIN          0
+#define BTN_PIN          9
 
 #define LED_SIGN_COUNT   268
 #define LED_MATRIX_H     7
@@ -61,7 +61,6 @@ static void updateTask(void* param);
 void setup()
 {
   pinMode(BTN_PIN, INPUT_PULLUP);
-
   console.begin();
   utils.begin();
   discord.begin();
@@ -75,7 +74,7 @@ void setup()
   {
     ledSign.setPixelColor(i, 255, 0, 200);
   }
-  ledSign.show();
+  // ledSign.show();
 
   xTaskCreate(updateTask, "main_task", 4096, NULL, 12, NULL);
 }
@@ -93,14 +92,7 @@ static void updateTask(void* param)
     static bool btnOld = false, btnNew = false;
     btnOld = btnNew;
     btnNew = !digitalRead(BTN_PIN);
-    if(!btnOld && btnNew)
-    {
-      static uint16_t counter = 0;
-      char buffer[60];
-      sprintf(buffer, "Button Pressed: %d", counter++);
-      console.log.printf("%s\n", buffer);
-      discord.sendEvent(buffer);
-    }
+
 
     if(utils.getConnectionState())
     {
@@ -124,7 +116,17 @@ static void updateTask(void* param)
       disp.setState(DisplayMatrix::DISCONNECTED);
     }
 
-    vTaskDelay(50);
+    if(sensor.getProxEvent())
+    {
+      console.log.println("[MAIN ]Proximity Event");
+      discord.sendEvent("PROXIMITY");
+    }
+
+    uint8_t brightness = map(sensor.getAmbientBrightness(), 0, 255, 0, disp.MAX_BRIGHTNESS);
+    brightness = brightness < 3? 0 : brightness;
+    disp.setBrightness(brightness);   // Turn off display for very low brightness (colors get distorted)
+
+    vTaskDelay(100);
     utils.resetWatchdog();
   }
 }

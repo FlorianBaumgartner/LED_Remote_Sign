@@ -42,7 +42,7 @@ class DisplayMatrix
 {
  public:
   static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
-  static constexpr const uint8_t MAX_BRIGHTNESS = 50;
+  static constexpr const uint8_t MAX_BRIGHTNESS = 120;
   static constexpr const uint8_t MATRIX_UPDATE_RATE = 25;    // [Hz]
   static constexpr const uint32_t TEXT_DEFAULT_COLOR = 0xFC5400;
   static constexpr const float TEXT_BLANK_SPACE_TIME = 0.5;    // [s]  Time to wait before scrolling the next message

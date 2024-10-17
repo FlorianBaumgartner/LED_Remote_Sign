@@ -184,9 +184,9 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
   {
     if(msg != currentMessage || force)    // Check if the message has changed or we're forcing a reset
     {
-      currentMessage = msg;    // Update the current message
-      textWidth = printMessage(currentMessage, color, scrollPosition);
-      scrollTextNecessary = textWidth > matrix.width();    // Check if scrolling is necessary
+      currentMessage = msg;                                               // Update the current message
+      textWidth = printMessage(currentMessage, color, matrix.width());    // Just get the text width (print outside the screen)
+      scrollTextNecessary = textWidth > matrix.width();                   // Check if scrolling is necessary
     }
     if(scrollTextNecessary)    // Only set the scroll position to the end if scrolling is necessary
     {
@@ -222,29 +222,12 @@ void DisplayMatrix::updateTask(void* pvParameter)
       switch(display->state)
       {
         case DisplayMatrix::BOOTING:
-          display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 6);
-          display->matrix.setTextColor(display->matrix.Color(255, 255, 255));
-          display->matrix.print("Booting...");
-          display->matrix.show();
           break;
         case DisplayMatrix::IDLE:
-          //   display->matrix.fillScreen(0);
-          //   display->matrix.setCursor(0, 6);
-          //   display->matrix.print("IDLE");
-          //   display->matrix.show();
           break;
         case DisplayMatrix::DISCONNECTED:
-          // display->matrix.fillScreen(0);
-          // display->matrix.setCursor(0, 6);
-          // display->matrix.print("DISCONNECTED");
-          // display->matrix.show();
           break;
         case DisplayMatrix::UPDATING:
-          display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 6);
-          display->matrix.print("UPDATING");
-          display->matrix.show();
           break;
       }
     }
@@ -254,24 +237,21 @@ void DisplayMatrix::updateTask(void* pvParameter)
     switch(display->state)
     {
       case DisplayMatrix::BOOTING:
+        display->scrollMessage("Booting...", 0xFFFFFF);
         break;
       case DisplayMatrix::IDLE:
         display->scrollMessage(display->newMessage, display->textColor);
         break;
       case DisplayMatrix::DISCONNECTED:
-        display->scrollMessage("Disconnected 😡 das isch blöd!", 0xFF0000);
+        display->scrollMessage("No Connection ❌", 0xFF0000);
         break;
       case DisplayMatrix::UPDATING:
         if(display->updatePercentage != oldPercentage)
         {
           oldPercentage = display->updatePercentage;
-          display->matrix.fillScreen(0);
-          display->matrix.setCursor(0, 6);
-          display->matrix.print("UPDATING");
-          display->matrix.setCursor(0, 8);
-          display->matrix.print(display->updatePercentage);
-          display->matrix.print("%");
-          display->matrix.show();
+          char percentage[5];
+          snprintf(percentage, sizeof(percentage), "%d%%", display->updatePercentage);
+          display->scrollMessage(percentage, 0x00FF00);
         }
         break;
     }
