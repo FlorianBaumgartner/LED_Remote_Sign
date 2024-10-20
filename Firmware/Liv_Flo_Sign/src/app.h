@@ -1,11 +1,11 @@
 /******************************************************************************
- * file    utils.h
+ * file    app.h
  *******************************************************************************
- * brief   Utility Functions
+ * brief   Main Application
  *******************************************************************************
  * author  Florian Baumgartner
  * version 1.0
- * date    2024-10-04
+ * date    2024-10-17
  *******************************************************************************
  * MIT License
  *
@@ -30,47 +30,40 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef APP_H
+#define APP_H
 
 #include <Arduino.h>
-#include <WiFiManager.h>
-#include <esp_task_wdt.h>
+#include "Discord.h"
+#include "GithubOTA.h"
+#include "displayMatrix.h"
+#include "displaySign.h"
+#include "sensor.h"
+#include "utils.h"
 
-class Utils
+class App
 {
  public:
-  enum Country
-  {
-    Switzerland = 0,
-    USA = 1,
-    Unknown = 2
-  };
+  static constexpr const float APP_UPDATE_RATE = 5.0;     // [Hz]
+  static constexpr const float LED_UPDATE_RATE = 30.0;    // [Hz]
 
-  static constexpr const char* WIFI_STA_SSID = "Liv Flo Sign";
-  static constexpr const float UTILS_UPDATE_RATE = 2.0;    // [Hz]  Interval to check for internet connection and time update
-  static const char* resetReasons[];
+  App(Utils& utils, Sensor& sensor, Discord& discord, GithubOTA& githubOTA, DisplayMatrix& disp, DisplaySign& sign)
+      : utils(utils), sensor(sensor), discord(discord), githubOTA(githubOTA), disp(disp), sign(sign)
+  {}
 
-  static bool begin(void);
-  static uint32_t getUnixTime();                      // GMT+0000
-  static bool getCurrentTime(struct tm& timeinfo);    // Local time
-  static bool isDaylightSavingTime() { return dst_offset != 0; }
-  static Country getCountry() { return country; }
-  static bool getConnectionState() { return connectionState; }    // True if connected to WiFi
-  static void resetSettings() { wm.resetSettings(); }
-  static void resetWatchdog() { esp_task_wdt_reset(); }
+  bool begin();
 
  private:
-  static WiFiManager wm;
+  Utils& utils;
+  Sensor& sensor;
+  Discord& discord;
+  GithubOTA& githubOTA;
+  DisplayMatrix& disp;
+  DisplaySign& sign;
 
-  static Country country;
-  static int32_t raw_offset;
-  static int32_t dst_offset;
 
-  static bool connectionState;
-
-  static bool updateTimeZoneOffset();
-  static void updateTask(void* pvParameter);
+  static void appTask(void* pvParameter);
+  static void ledTask(void* pvParameter);
 };
 
 #endif

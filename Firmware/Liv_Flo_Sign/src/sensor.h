@@ -47,7 +47,7 @@ class Sensor
   static constexpr const int PROX_SNR_THRESHOLD = 50;        // Value must rise over this threshold compared to the average to trigger an event
   static constexpr const uint16_t AMB_VALUE_MIN = 20;        // Goes down to 0 when really dark, consider values below 50 as fairly dark
   static constexpr const uint16_t AMB_VALUE_MAX = 30000;     // Not yet tested in direct sunlight, but goes up 65535 in full LED flashlight
-  static constexpr const float AMB_POW_PARAM = 0.42;    // Values between 0.1 ... 0.7 seem reasonable (lower values mean more sensitive to low light)
+  static constexpr const float AMB_POW_PARAM = 0.42;         // Values between 0.1...0.7 seem reasonable (lower values mean more sensitive to low light)
   // Function: u = 255 * (x / AMB_VALUE_MAX)^AMB_POW_PARAM
 
   // A ambient value ~200 is in a slighyly dark room (evening, OK to work)

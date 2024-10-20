@@ -1,11 +1,11 @@
 /******************************************************************************
- * file    utils.h
+ * file    displaySign.h
  *******************************************************************************
- * brief   Utility Functions
+ * brief   Handles the LED Sign Display
  *******************************************************************************
  * author  Florian Baumgartner
  * version 1.0
- * date    2024-10-04
+ * date    2024-10-20
  *******************************************************************************
  * MIT License
  *
@@ -30,47 +30,33 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#ifndef UTILS_H
-#define UTILS_H
+#include "DisplaySign.h"
+#include "console.h"
 
-#include <Arduino.h>
-#include <WiFiManager.h>
-#include <esp_task_wdt.h>
-
-class Utils
+void DisplaySign::begin(float updateRate)
 {
- public:
-  enum Country
+  this->updateRate = updateRate;
+  pixels.begin();
+  pixels.clear();
+  pixels.show();
+}
+
+
+void DisplaySign::updateTask(void)
+{
+  static int pos = 0;
+  for(int i = 0; i < pixels.numPixels(); i++)
   {
-    Switzerland = 0,
-    USA = 1,
-    Unknown = 2
-  };
+    if(i < pos)
+    {
+      pixels.setPixelColor(i, 0xFC5400);
+    }
+    else
+    {
+      pixels.setPixelColor(i, 0, 0, 0);
+    }
+  }
+  pos = (pos + 1) % pixels.numPixels();
 
-  static constexpr const char* WIFI_STA_SSID = "Liv Flo Sign";
-  static constexpr const float UTILS_UPDATE_RATE = 2.0;    // [Hz]  Interval to check for internet connection and time update
-  static const char* resetReasons[];
-
-  static bool begin(void);
-  static uint32_t getUnixTime();                      // GMT+0000
-  static bool getCurrentTime(struct tm& timeinfo);    // Local time
-  static bool isDaylightSavingTime() { return dst_offset != 0; }
-  static Country getCountry() { return country; }
-  static bool getConnectionState() { return connectionState; }    // True if connected to WiFi
-  static void resetSettings() { wm.resetSettings(); }
-  static void resetWatchdog() { esp_task_wdt_reset(); }
-
- private:
-  static WiFiManager wm;
-
-  static Country country;
-  static int32_t raw_offset;
-  static int32_t dst_offset;
-
-  static bool connectionState;
-
-  static bool updateTimeZoneOffset();
-  static void updateTask(void* pvParameter);
-};
-
-#endif
+  pixels.show();
+}

@@ -35,8 +35,9 @@
 #include "../tools/Emoji/emoji_bitmaps.h"
 #include "console.h"
 
-void DisplayMatrix::begin(void)
+void DisplayMatrix::begin(float updateRate)
 {
+  this->updateRate = updateRate;
   matrix.begin();
   matrix.setTextSize(1);
   matrix.setFont(&Grand9K_Pixel8pt7bModified);
@@ -45,8 +46,6 @@ void DisplayMatrix::begin(void)
   matrix.setTextColor(matrix.Color(0, 0, 255));
   matrix.fillScreen(0);
   matrix.show();
-
-  xTaskCreate(updateTask, "matrix", 4096, this, 15, NULL);
 }
 
 size_t DisplayMatrix::printMessage(const String& msg, uint32_t color, int offset)
@@ -180,7 +179,7 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
   matrix.setPassThruColor(0);
   matrix.fillScreen(0);
 
-  if(!scrollTextNecessary || force || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * MATRIX_UPDATE_RATE))
+  if(!scrollTextNecessary || force || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * updateRate))
   {
     if(msg != currentMessage || force)    // Check if the message has changed or we're forcing a reset
     {
@@ -206,57 +205,49 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
 }
 
 
-void DisplayMatrix::updateTask(void* pvParameter)
+void DisplayMatrix::updateTask(void)
 {
-  DisplayMatrix* display = (DisplayMatrix*)pvParameter;
   static State lastState = (State)-1;
-  while(true)
+
+  // Handle Events
+  if(state != lastState)
   {
-    TickType_t task_last_tick = xTaskGetTickCount();
-
-    // Handle Events
-    if(display->state != lastState)
-    {
-      lastState = display->state;
-      console.log.printf("[DISP_MAT] State changed to %d\n", display->state);
-      switch(display->state)
-      {
-        case DisplayMatrix::BOOTING:
-          break;
-        case DisplayMatrix::IDLE:
-          break;
-        case DisplayMatrix::DISCONNECTED:
-          break;
-        case DisplayMatrix::UPDATING:
-          break;
-      }
-    }
-
-    // Handle Live Updates
-    static uint8_t oldPercentage = 0;
-    switch(display->state)
+    lastState = state;
+    console.log.printf("[DISP_MAT] State changed to %d\n", state);
+    switch(state)
     {
       case DisplayMatrix::BOOTING:
-        display->scrollMessage("Booting...", 0xFFFFFF);
         break;
       case DisplayMatrix::IDLE:
-        display->scrollMessage(display->newMessage, display->textColor);
         break;
       case DisplayMatrix::DISCONNECTED:
-        display->scrollMessage("No Connection ❌", 0xFF0000);
         break;
       case DisplayMatrix::UPDATING:
-        if(display->updatePercentage != oldPercentage)
-        {
-          oldPercentage = display->updatePercentage;
-          char percentage[5];
-          snprintf(percentage, sizeof(percentage), "%d%%", display->updatePercentage);
-          display->scrollMessage(String(percentage), 0xFFFF00);
-        }
         break;
     }
-
-    vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 / MATRIX_UPDATE_RATE);
   }
-  vTaskDelete(NULL);
+
+  // Handle Live Updates
+  static uint8_t oldPercentage = 0;
+  switch(state)
+  {
+    case DisplayMatrix::BOOTING:
+      scrollMessage("Booting...", 0xFFFFFF);
+      break;
+    case DisplayMatrix::IDLE:
+      scrollMessage(newMessage, textColor);
+      break;
+    case DisplayMatrix::DISCONNECTED:
+      scrollMessage("No Connection ❌", 0xFF0000);
+      break;
+    case DisplayMatrix::UPDATING:
+      if(updatePercentage != oldPercentage)
+      {
+        oldPercentage = updatePercentage;
+        char percentage[5];
+        snprintf(percentage, sizeof(percentage), "%d%%", updatePercentage);
+        scrollMessage(String(percentage), 0xFFFF00);
+      }
+      break;
+  }
 }
