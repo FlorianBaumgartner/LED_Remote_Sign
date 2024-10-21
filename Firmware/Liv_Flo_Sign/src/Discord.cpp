@@ -203,7 +203,6 @@ bool Discord::checkForMessages()
     if(error)
     {
       console.error.printf("[DISCORD] Failed to parse JSON: %s\n", error.c_str());
-      Serial.println(payload);
       client.stop();
       break;
     }

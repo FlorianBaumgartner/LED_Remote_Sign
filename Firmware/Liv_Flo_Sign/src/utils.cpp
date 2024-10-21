@@ -9,7 +9,11 @@ WiFiManager Utils::wm(console.log);
 Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
+int Utils::buttonPin = -1;
 bool Utils::connectionState = false;
+bool Utils::shortPressEvent = false;
+bool Utils::longPressEvent = false;
+
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
 
@@ -33,7 +37,7 @@ bool Utils::begin(void)
   }
 
   connectionState = false;
-  xTaskCreate(updateTask, "utils", 4096, NULL, 10, NULL);
+  xTaskCreate(updateTask, "utils", 4096, NULL, 13, NULL);
   return true;
 }
 
@@ -99,6 +103,30 @@ void Utils::updateTask(void* pvParameter)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
     wm.process();    // Keep the WifiManager responsive
+
+    static uint32_t buttonPressTime = 0;
+    static bool buttonOld = false, buttonNew = false, longPressEarly = false;
+    buttonOld = buttonNew;
+    buttonNew = !digitalRead(buttonPin);
+    
+    if(!longPressEarly)
+    {
+      if(millis() - buttonPressTime > BUTTON_LONG_PRESS_TIME * 1000)
+      {
+        longPressEvent = true;
+        longPressEarly = true;    // Prevent multiple long press events
+      }
+      if(buttonOld && !buttonNew)    // Button was released
+      {
+        shortPressEvent = true;
+      }
+    }
+    if(!buttonNew)
+    {
+      buttonPressTime = millis();    // Keep the time of the last time the button was unpressed
+      longPressEarly = false;
+    }
+
 
     if(millis() - t >= 1000 / UTILS_UPDATE_RATE)
     {

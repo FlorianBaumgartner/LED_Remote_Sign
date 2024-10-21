@@ -174,14 +174,14 @@ bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // Declare the portMUX_TYPE globally or within the relevant scope
 
-void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
+void DisplayMatrix::scrollMessage(const String& msg, uint32_t color)
 {
   matrix.setPassThruColor(0);
   matrix.fillScreen(0);
 
-  if(!scrollTextNecessary || force || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * updateRate))
+  if(!scrollTextNecessary || resetScrollPosition || scrollPosition < -(textWidth + TEXT_BLANK_SPACE_TIME * updateRate))
   {
-    if(msg != currentMessage || force)    // Check if the message has changed or we're forcing a reset
+    if((msg != currentMessage) || resetScrollPosition)    // Check if the message has changed or we're forcing a reset
     {
       currentMessage = msg;                                               // Update the current message
       textWidth = printMessage(currentMessage, color, matrix.width());    // Just get the text width (print outside the screen)
@@ -191,6 +191,7 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, bool force)
     {
       scrollPosition = matrix.width();    // Reset scroll position to the start
     }
+    resetScrollPosition = false;
   }
   if(scrollTextNecessary)    // Check if scrolling is necessary
   {
@@ -213,7 +214,7 @@ void DisplayMatrix::updateTask(void)
   if(state != lastState)
   {
     lastState = state;
-    console.log.printf("[DISP_MAT] State changed to %d\n", state);
+    resetScrollPosition = true;    // Force a reset of the scroll position
     switch(state)
     {
       case DisplayMatrix::BOOTING:
@@ -221,6 +222,8 @@ void DisplayMatrix::updateTask(void)
       case DisplayMatrix::IDLE:
         break;
       case DisplayMatrix::DISCONNECTED:
+        break;
+      case DisplayMatrix::SHOW_IP:
         break;
       case DisplayMatrix::UPDATING:
         break;
@@ -239,6 +242,9 @@ void DisplayMatrix::updateTask(void)
       break;
     case DisplayMatrix::DISCONNECTED:
       scrollMessage("No Connection ❌", 0xFF0000);
+      break;
+    case DisplayMatrix::SHOW_IP:
+      scrollMessage(ipAddress, 0xFFFFFF);
       break;
     case DisplayMatrix::UPDATING:
       if(updatePercentage != oldPercentage)

@@ -44,8 +44,10 @@
 class App
 {
  public:
-  static constexpr const float APP_UPDATE_RATE = 5.0;     // [Hz]
+  static constexpr const float APP_UPDATE_RATE = 10.0;     // [Hz]
   static constexpr const float LED_UPDATE_RATE = 30.0;    // [Hz]
+
+  static constexpr const float IP_ADDRESS_SHOW_TIME = 7.0;    // [s]
 
   App(Utils& utils, Sensor& sensor, Discord& discord, GithubOTA& githubOTA, DisplayMatrix& disp, DisplaySign& sign)
       : utils(utils), sensor(sensor), discord(discord), githubOTA(githubOTA), disp(disp), sign(sign)
@@ -61,6 +63,7 @@ class App
   DisplayMatrix& disp;
   DisplaySign& sign;
 
+  Timer showIpAddressTimer;
 
   static void appTask(void* pvParameter);
   static void ledTask(void* pvParameter);

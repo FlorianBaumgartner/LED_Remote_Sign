@@ -37,6 +37,19 @@
 #include <WiFiManager.h>
 #include <esp_task_wdt.h>
 
+
+class Timer
+{
+ public:
+  Timer() {}
+  void start(uint32_t timeout) { time = millis() + timeout; }
+  bool expired() { return millis() > time; }
+
+ private:
+  uint32_t time = 0;
+};
+
+
 class Utils
 {
  public:
@@ -48,9 +61,12 @@ class Utils
   };
 
   static constexpr const char* WIFI_STA_SSID = "Liv Flo Sign";
-  static constexpr const float UTILS_UPDATE_RATE = 2.0;    // [Hz]  Interval to check for internet connection and time update
-  static const char* resetReasons[];
+  static constexpr const float UTILS_UPDATE_RATE = 2.0;         // [Hz]  Interval to check for internet connection and time update
+  static constexpr const float BUTTON_LONG_PRESS_TIME = 4.0;    // [s]  Time to hold the button for a long press
 
+  static WiFiManager wm;
+
+  Utils(int buttonPin) { this->buttonPin = buttonPin; }
   static bool begin(void);
   static uint32_t getUnixTime();                      // GMT+0000
   static bool getCurrentTime(struct tm& timeinfo);    // Local time
@@ -59,15 +75,32 @@ class Utils
   static bool getConnectionState() { return connectionState; }    // True if connected to WiFi
   static void resetSettings() { wm.resetSettings(); }
   static void resetWatchdog() { esp_task_wdt_reset(); }
+  static bool getButtonShortPressEvent(bool clearFlag = true)
+  {
+    bool temp = shortPressEvent;
+    if(clearFlag)
+      shortPressEvent = false;
+    return temp;
+  }
+  static bool getButtonLongPressEvent(bool clearFlag = true)
+  {
+    bool temp = longPressEvent;
+    if(clearFlag)
+      longPressEvent = false;
+    return temp;
+  }
 
  private:
-  static WiFiManager wm;
-
+  static const char* resetReasons[];
   static Country country;
   static int32_t raw_offset;
   static int32_t dst_offset;
 
   static bool connectionState;
+  static int buttonPin;
+
+  static bool shortPressEvent;
+  static bool longPressEvent;
 
   static bool updateTimeZoneOffset();
   static void updateTask(void* pvParameter);

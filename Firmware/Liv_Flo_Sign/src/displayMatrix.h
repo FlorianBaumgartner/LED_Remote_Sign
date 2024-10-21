@@ -52,6 +52,7 @@ class DisplayMatrix
     BOOTING,
     IDLE,
     DISCONNECTED,
+    SHOW_IP,
     UPDATING
   };
 
@@ -65,6 +66,7 @@ class DisplayMatrix
   void setState(State newState) { state = newState; }
   void setUpdatePercentage(uint8_t percentage) { updatePercentage = percentage; }
   void setMessage(const String& msg) { newMessage = msg; }
+  void setIpAdress(const String& ipAddr) { ipAddress = ipAddr; }
 
 
  private:
@@ -73,15 +75,18 @@ class DisplayMatrix
   uint8_t updatePercentage = 0;
   String currentMessage = "";
   String newMessage = "";
+  String ipAddress = "";
   uint32_t textColor = TEXT_DEFAULT_COLOR;
+  uint32_t textColorNew = TEXT_DEFAULT_COLOR;
   int scrollPosition = matrix.width();
   int textWidth = 0;
   bool scrollTextNecessary = true;
+  bool resetScrollPosition = false;
   float updateRate = 30;
 
   size_t printMessage(const String& msg, uint32_t color, int offset = 0);
   bool drawEmoji(int x, int y, uint32_t unicode_index);
-  void scrollMessage(const String& msg, uint32_t color, bool force = false);
+  void scrollMessage(const String& msg, uint32_t color);
 };
 
 #endif

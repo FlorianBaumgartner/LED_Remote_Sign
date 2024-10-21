@@ -53,22 +53,28 @@ void App::appTask(void* pvParameter)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
 
-    // static bool btnOld = false, btnNew = false;
-    // btnOld = btnNew;
-    // btnNew = !digitalRead(BTN_PIN);
-
     if(app->utils.getConnectionState())
     {
       if(app->githubOTA.updateAvailable())
       {
         app->githubOTA.startUpdate();
       }
+      if(app->utils.getButtonShortPressEvent())
+      {
+        app->showIpAddressTimer.start(IP_ADDRESS_SHOW_TIME * 1000);
+        IPAddress ipAddr = WiFi.localIP();
+        static char ipStr[16];
+        sprintf(ipStr, "%d.%d.%d.%d", ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
+        app->disp.setIpAdress(String(ipStr));
+        app->disp.setState(DisplayMatrix::SHOW_IP);
+      }
+
       if(app->githubOTA.updateInProgress())
       {
         app->disp.setState(DisplayMatrix::UPDATING);
         app->disp.setUpdatePercentage(app->githubOTA.getProgress());
       }
-      else
+      else if(app->showIpAddressTimer.expired())   // Show IP address instead of message while timer is running
       {
         app->disp.setState(DisplayMatrix::IDLE);
         app->disp.setMessage(app->discord.getLatestMessage());

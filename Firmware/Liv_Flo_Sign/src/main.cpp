@@ -49,7 +49,7 @@
 #define LED_MATRIX_W     40
 
 
-Utils utils;
+Utils utils(BTN_PIN);
 Sensor sensor;
 Discord discord;
 GithubOTA githubOTA;
