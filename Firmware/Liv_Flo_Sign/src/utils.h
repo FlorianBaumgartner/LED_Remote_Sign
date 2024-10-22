@@ -106,6 +106,7 @@ class Utils
   static Country country;
   static int32_t raw_offset;
   static int32_t dst_offset;
+  static bool timezoneValid;
 
   static bool connectionState;
   static int buttonPin;

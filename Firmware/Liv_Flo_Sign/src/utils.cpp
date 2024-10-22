@@ -13,6 +13,7 @@ int Utils::buttonPin = -1;
 bool Utils::connectionState = false;
 bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
+bool Utils::timezoneValid = false;
 
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
@@ -67,7 +68,7 @@ uint32_t Utils::getUnixTime()
   if(millis() - lastCheck > 10000)    // Check every 10 seconds what the current time offset is
   {
     lastCheck = millis();
-    updateTimeZoneOffset();
+    timezoneValid = updateTimeZoneOffset();
   }
   getCurrentTime(timeinfo);
   time_t now;
@@ -153,7 +154,7 @@ void Utils::updateTask(void* pvParameter)
 
       connectionStateOld = connectionState;
       connectionState = WiFi.status() == WL_CONNECTED;
-      if(!connectionStateOld && connectionState)
+      if((!connectionStateOld && connectionState) ||  !timezoneValid)     // Retry getting time zone info
       {
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;
@@ -177,7 +178,7 @@ void Utils::updateTask(void* pvParameter)
             console.log.println("[UTILS] Country: Unknown");
           }
         }
-        updateTimeZoneOffset();
+        timezoneValid = updateTimeZoneOffset();
         console.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
         struct tm timeinfo;
         getCurrentTime(timeinfo);

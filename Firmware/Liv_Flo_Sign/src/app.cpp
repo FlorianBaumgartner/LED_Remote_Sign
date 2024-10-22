@@ -57,19 +57,20 @@ void App::appTask(void* pvParameter)
     {
       if(app->githubOTA.updateAvailable())
       {
-        app->githubOTA.startUpdate();
+        console.log.println("[APP] Update available, shut down services");
         app->discord.enable(false);
         app->sign.enable(false);
         app->sensor.enable(false);
+        app->githubOTA.startUpdate();
       }
       if(app->githubOTA.updateAborted())
       {
-        app->disp.setState(DisplayMatrix::IDLE);
-        app->disp.setMessage("Update aborted");
         console.error.println("[APP] Update aborted");
         app->discord.enable(true);
         app->sign.enable(true);
         app->sensor.enable(true);
+        app->disp.setState(DisplayMatrix::IDLE);
+        app->disp.setMessage("Update aborted");
       }
 
       if(app->utils.getButtonShortPressEvent())

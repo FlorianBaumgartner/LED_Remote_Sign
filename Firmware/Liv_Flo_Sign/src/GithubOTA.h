@@ -43,10 +43,7 @@ class Firmware
   uint8_t major = 0;
   uint8_t minor = 0;
   uint8_t patch = 0;
-  String toString()
-  {
-    return "v" + String(major) + "." + String(minor) + "." + String(patch);
-  }
+  String toString() { return "v" + String(major) + "." + String(minor) + "." + String(patch); }
 };
 
 class GithubOTA
@@ -56,7 +53,7 @@ class GithubOTA
   void begin(const char* repo, const char* currentFwVersion = FIRMWARE_VERSION);
   bool isServerAvailable() { return _serverAvailable; }
   bool updateAvailable() { return _updateAvailable && !_updateInProgress; }
-  void startUpdate() { _startUpdate = true; }
+  void startUpdate() { _startUpdate = _updateInProgress = true; }
   uint16_t getProgress() { return _progress; }
   bool updateInProgress() { return _updateInProgress; }
   bool updateAborted() { return _updateAborted; }
