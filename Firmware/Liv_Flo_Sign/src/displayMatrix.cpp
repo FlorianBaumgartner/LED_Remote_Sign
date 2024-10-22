@@ -164,7 +164,7 @@ bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
       unicode_char[1] = (unicode_index >> 8) & 0xFF;
       unicode_char[2] = unicode_index & 0xFF;
       unicode_char[3] = '\0';
-      console.warning.printf("[DISP_MAT] Emoji not found: emoji_%x (%s)\n", unicode_index, unicode_char);
+      // console.warning.printf("[DISP_MAT] Emoji not found: emoji_%x (%s)\n", unicode_index, unicode_char);
     }
   }
   matrix.setPassThruColor();

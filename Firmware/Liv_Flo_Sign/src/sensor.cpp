@@ -90,9 +90,11 @@ void Sensor::updateTask(void* pvParameter)
         sensor->proxValueAvr = sensor->proxValue;
       }
       sensor->proxValueAvr = sensor->proxValue * Sensor::PROX_AVR_RATE + sensor->proxValueAvr * (1 - Sensor::PROX_AVR_RATE);
-      if(sensor->proxValue > sensor->proxValueAvr + Sensor::PROX_SNR_THRESHOLD)
+      if((sensor->proxValue > sensor->proxValueAvr + Sensor::PROX_SNR_THRESHOLD) && !sensor->proxEvent &&
+         (millis() - sensor->proxEventTime > Sensor::PROX_BLANK_TIME * 1000))
       {
         sensor->proxEvent = true;
+        sensor->proxEventTime = millis();
       }
     }
 

@@ -5,7 +5,7 @@
 #include "console.h"
 #include "esp_wifi.h"
 
-WiFiManager Utils::wm(console.log);
+WiFiManagerCustom Utils::wm(console.log);
 Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
@@ -17,6 +17,8 @@ bool Utils::longPressEvent = false;
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
 
+WiFiManagerParameter Utils::custom_mqtt_server("server", "mqtt server", "", 40);
+
 
 bool Utils::begin(void)
 {
@@ -26,10 +28,19 @@ bool Utils::begin(void)
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
   wm.setConfigPortalBlocking(false);
-  // wm.setConfigPortalTimeout(60);
+  wm.setConnectTimeout(180);
+  wm.setConnectRetries(100);
+  std::vector<const char*> menuItems = {"wifi", "param", "info", "update"};    // Don't display "Exit" in the menu
+  wm.setMenu(menuItems);
+  wm.setClass("invert");    // Dark theme
+
+  wm.addParameter(&custom_mqtt_server);
+  wm.setSaveParamsCallback(saveParamsCallback);
+
   if(wm.autoConnect(WIFI_STA_SSID))
   {
     console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
+    wm.startConfigPortal();
   }
   else
   {
@@ -39,6 +50,14 @@ bool Utils::begin(void)
   connectionState = false;
   xTaskCreate(updateTask, "utils", 4096, NULL, 13, NULL);
   return true;
+}
+
+void Utils::saveParamsCallback()
+{
+  console.log.println("Get Params:");
+  console.log.print(custom_mqtt_server.getID());
+  console.log.print(" : ");
+  console.log.println(custom_mqtt_server.getValue());
 }
 
 uint32_t Utils::getUnixTime()
@@ -108,7 +127,7 @@ void Utils::updateTask(void* pvParameter)
     static bool buttonOld = false, buttonNew = false, longPressEarly = false;
     buttonOld = buttonNew;
     buttonNew = !digitalRead(buttonPin);
-    
+
     if(!longPressEarly)
     {
       if(millis() - buttonPressTime > BUTTON_LONG_PRESS_TIME * 1000)

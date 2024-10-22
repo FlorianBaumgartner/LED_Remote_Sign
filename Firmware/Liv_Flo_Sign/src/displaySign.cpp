@@ -56,7 +56,7 @@ void DisplaySign::updateTask(void)
       pixels.setPixelColor(i, 0, 0, 0);
     }
   }
-  pos = (pos + 1) % pixels.numPixels();
+  pos = (pos + 2) % pixels.numPixels();
 
   pixels.show();
 }

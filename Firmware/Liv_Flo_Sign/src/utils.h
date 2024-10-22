@@ -49,6 +49,16 @@ class Timer
   uint32_t time = 0;
 };
 
+class WiFiManagerCustom : public WiFiManager
+{
+ public:
+  WiFiManagerCustom() : WiFiManager() {}
+  WiFiManagerCustom(Print& consolePort) : WiFiManager(consolePort) {}
+
+ protected:
+  bool _allowExit = false;    // Allow the user to exit the configuration portal
+};
+
 
 class Utils
 {
@@ -64,7 +74,8 @@ class Utils
   static constexpr const float UTILS_UPDATE_RATE = 2.0;         // [Hz]  Interval to check for internet connection and time update
   static constexpr const float BUTTON_LONG_PRESS_TIME = 4.0;    // [s]  Time to hold the button for a long press
 
-  static WiFiManager wm;
+  static WiFiManagerCustom wm;
+  static WiFiManagerParameter custom_mqtt_server;
 
   Utils(int buttonPin) { this->buttonPin = buttonPin; }
   static bool begin(void);
@@ -101,6 +112,8 @@ class Utils
 
   static bool shortPressEvent;
   static bool longPressEvent;
+
+  static void saveParamsCallback();
 
   static bool updateTimeZoneOffset();
   static void updateTask(void* pvParameter);
