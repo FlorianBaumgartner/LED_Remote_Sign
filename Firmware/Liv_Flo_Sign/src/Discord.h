@@ -95,7 +95,6 @@ class Discord
       newMessageFlag = false;
     return flag;
   }
-
   bool getLatestEvent(String& event)
   {
     if(latestEvent.type.length() == 0)
@@ -103,9 +102,9 @@ class Discord
     event = latestEvent.type;
     return true;
   }
-
   bool newEventAvailable() { return newEventFlag; }
   void sendEvent(const char* event);
+  void enable(bool enable) { enabled = enable; }
 
 
  private:
@@ -121,6 +120,7 @@ class Discord
   bool newMessageFlag = false;
   bool newEventFlag = false;
   bool outgoingEventFlag = false;
+  bool enabled = true;
 
 
   const Devices devices[5] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),

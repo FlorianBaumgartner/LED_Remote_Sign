@@ -59,7 +59,7 @@ class GithubOTA
   void startUpdate() { _startUpdate = true; }
   uint16_t getProgress() { return _progress; }
   bool updateInProgress() { return _updateInProgress; }
-  void updateAborted() { _updateAborted = true; }
+  bool updateAborted() { return _updateAborted; }
   Firmware getCurrentFirmwareVersion() { return _currentFwVersion; }
   Firmware getLatestFirmwareVersion() { return _latestFwVersion; }
 

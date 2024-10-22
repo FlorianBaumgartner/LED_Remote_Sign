@@ -50,12 +50,14 @@ class DisplaySign
   void begin(float updateRate = 30);
   void updateTask(void);
   void setBrightness(uint8_t brightness) { pixels.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
+  void enable(bool enable);
 
 
  private:
   Adafruit_NeoPixel pixels;
   uint8_t updatePercentage = 0;
   float updateRate = 30;
+  bool enabled = true;
 };
 
 #endif

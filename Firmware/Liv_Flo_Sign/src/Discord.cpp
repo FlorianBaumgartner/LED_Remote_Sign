@@ -328,7 +328,7 @@ void Discord::updateTask(void* param)
   while(true)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
-    if(WiFi.status() == WL_CONNECTED)
+    if(WiFi.status() == WL_CONNECTED && ref->enabled)
     {
       ref->checkForOutgoingEvents();    // Check if there are events to send
       ref->checkForMessages();          // Check is server is available and if an update is available

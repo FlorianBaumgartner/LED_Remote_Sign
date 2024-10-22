@@ -44,19 +44,34 @@ void DisplaySign::begin(float updateRate)
 
 void DisplaySign::updateTask(void)
 {
+  if(!enabled)
+  {
+    return;
+  }
   static int pos = 0;
   for(int i = 0; i < pixels.numPixels(); i++)
   {
     if(i < pos)
     {
-      pixels.setPixelColor(i, 0xFC5400);
+      // pixels.setPixelColor(i, 0xFC5400);
+      pixels.setPixelColor(i, 0xFF00FF);
     }
     else
     {
       pixels.setPixelColor(i, 0, 0, 0);
     }
   }
-  pos = (pos + 2) % pixels.numPixels();
+  pos = (pos + 1) % pixels.numPixels();
 
   pixels.show();
+}
+
+void DisplaySign::enable(bool enable)
+{
+  enabled = enable;
+  if(!enabled)
+  {
+    pixels.clear();
+    pixels.show();
+  }
 }

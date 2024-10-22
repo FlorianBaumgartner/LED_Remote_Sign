@@ -58,7 +58,20 @@ void App::appTask(void* pvParameter)
       if(app->githubOTA.updateAvailable())
       {
         app->githubOTA.startUpdate();
+        app->discord.enable(false);
+        app->sign.enable(false);
+        app->sensor.enable(false);
       }
+      if(app->githubOTA.updateAborted())
+      {
+        app->disp.setState(DisplayMatrix::IDLE);
+        app->disp.setMessage("Update aborted");
+        console.error.println("[APP] Update aborted");
+        app->discord.enable(true);
+        app->sign.enable(true);
+        app->sensor.enable(true);
+      }
+
       if(app->utils.getButtonShortPressEvent())
       {
         app->showIpAddressTimer.start(IP_ADDRESS_SHOW_TIME * 1000);
@@ -74,7 +87,7 @@ void App::appTask(void* pvParameter)
         app->disp.setState(DisplayMatrix::UPDATING);
         app->disp.setUpdatePercentage(app->githubOTA.getProgress());
       }
-      else if(app->showIpAddressTimer.expired())   // Show IP address instead of message while timer is running
+      else if(app->showIpAddressTimer.expired())    // Show IP address instead of message while timer is running
       {
         app->disp.setState(DisplayMatrix::IDLE);
         app->disp.setMessage(app->discord.getLatestMessage());
@@ -92,8 +105,8 @@ void App::appTask(void* pvParameter)
     }
 
     uint8_t brightness = map(app->sensor.getAmbientBrightness(), 0, 255, 0, app->disp.MAX_BRIGHTNESS);
-    brightness = brightness < 3? 0 : brightness;
-    app->disp.setBrightness(brightness);   // Turn off display for very low brightness (colors get distorted)
+    brightness = brightness < 3 ? 0 : brightness;
+    app->disp.setBrightness(brightness);    // Turn off display for very low brightness (colors get distorted)
     app->sign.setBrightness(brightness);
 
     app->utils.resetWatchdog();

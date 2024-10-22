@@ -252,7 +252,7 @@ void DisplayMatrix::updateTask(void)
         oldPercentage = updatePercentage;
         char percentage[5];
         snprintf(percentage, sizeof(percentage), "%d%%", updatePercentage);
-        scrollMessage(String(percentage), 0xFFFF00);
+        scrollMessage(String(percentage), 0xFFFFFF);
       }
       break;
   }

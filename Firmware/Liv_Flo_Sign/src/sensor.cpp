@@ -71,30 +71,33 @@ void Sensor::updateTask(void* pvParameter)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
 
-    if(sensor->vcnl4020.isAmbientReady())
+    if(sensor->enabled)
     {
-      sensor->ambientValue = sensor->vcnl4020.readAmbient();
-      sensor->vcnl4020.clearInterrupts(false, true, false, false);    // Clear Interrupts
-      if(sensor->ambientValueAvr < 0)                                 // Initialize the exponential moving average
+      if(sensor->vcnl4020.isAmbientReady())
       {
-        sensor->ambientValueAvr = sensor->ambientValue;
+        sensor->ambientValue = sensor->vcnl4020.readAmbient();
+        sensor->vcnl4020.clearInterrupts(false, true, false, false);    // Clear Interrupts
+        if(sensor->ambientValueAvr < 0)                                 // Initialize the exponential moving average
+        {
+          sensor->ambientValueAvr = sensor->ambientValue;
+        }
+        sensor->ambientValueAvr = sensor->ambientValue * Sensor::AMB_AVR_RATE + sensor->ambientValueAvr * (1 - Sensor::AMB_AVR_RATE);
       }
-      sensor->ambientValueAvr = sensor->ambientValue * Sensor::AMB_AVR_RATE + sensor->ambientValueAvr * (1 - Sensor::AMB_AVR_RATE);
-    }
-    if(sensor->vcnl4020.isProxReady())
-    {
-      sensor->proxValue = sensor->vcnl4020.readProximity();
-      sensor->vcnl4020.clearInterrupts(true, false, false, false);    // Clear Interrupts
-      if(sensor->proxValueAvr < 0)                                    // Initialize the exponential moving average
+      if(sensor->vcnl4020.isProxReady())
       {
-        sensor->proxValueAvr = sensor->proxValue;
-      }
-      sensor->proxValueAvr = sensor->proxValue * Sensor::PROX_AVR_RATE + sensor->proxValueAvr * (1 - Sensor::PROX_AVR_RATE);
-      if((sensor->proxValue > sensor->proxValueAvr + Sensor::PROX_SNR_THRESHOLD) && !sensor->proxEvent &&
-         (millis() - sensor->proxEventTime > Sensor::PROX_BLANK_TIME * 1000))
-      {
-        sensor->proxEvent = true;
-        sensor->proxEventTime = millis();
+        sensor->proxValue = sensor->vcnl4020.readProximity();
+        sensor->vcnl4020.clearInterrupts(true, false, false, false);    // Clear Interrupts
+        if(sensor->proxValueAvr < 0)                                    // Initialize the exponential moving average
+        {
+          sensor->proxValueAvr = sensor->proxValue;
+        }
+        sensor->proxValueAvr = sensor->proxValue * Sensor::PROX_AVR_RATE + sensor->proxValueAvr * (1 - Sensor::PROX_AVR_RATE);
+        if((sensor->proxValue > sensor->proxValueAvr + Sensor::PROX_SNR_THRESHOLD) && !sensor->proxEvent &&
+           (millis() - sensor->proxEventTime > Sensor::PROX_BLANK_TIME * 1000))
+        {
+          sensor->proxEvent = true;
+          sensor->proxEventTime = millis();
+        }
       }
     }
 
