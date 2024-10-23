@@ -38,6 +38,7 @@
 bool GithubOTA::_serverAvailable = false;
 bool GithubOTA::_updateAvailable = false;
 bool GithubOTA::_startUpdate = false;
+bool GithubOTA::_updateStarted = false;
 bool GithubOTA::_updateAborted = false;
 bool GithubOTA::_updateInProgress = false;
 uint16_t GithubOTA::_progress = 0;
@@ -128,6 +129,7 @@ bool GithubOTA::checkForUpdates()
     _startUpdate = false;
     _updateAborted = false;
     _updateInProgress = true;
+    _updateStarted = false;
     _progress = 0;
 
     httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);

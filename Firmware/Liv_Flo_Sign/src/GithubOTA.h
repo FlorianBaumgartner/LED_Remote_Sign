@@ -53,9 +53,9 @@ class GithubOTA
   void begin(const char* repo, const char* currentFwVersion = FIRMWARE_VERSION);
   bool isServerAvailable() { return _serverAvailable; }
   bool updateAvailable() { return _updateAvailable && !_updateInProgress; }
-  void startUpdate() { _startUpdate = _updateInProgress = true; }
+  void startUpdate() { _startUpdate = _updateStarted = true; }
   uint16_t getProgress() { return _progress; }
-  bool updateInProgress() { return _updateInProgress; }
+  bool updateInProgress() { return _updateInProgress || _updateStarted; }
   bool updateAborted() { return _updateAborted; }
   Firmware getCurrentFirmwareVersion() { return _currentFwVersion; }
   Firmware getLatestFirmwareVersion() { return _latestFwVersion; }
@@ -68,6 +68,7 @@ class GithubOTA
   static bool _serverAvailable;
   static bool _updateAvailable;
   static bool _startUpdate;
+  static bool _updateStarted;
   static bool _updateAborted;
   static bool _updateInProgress;
   static uint16_t _progress;
