@@ -55,6 +55,7 @@ class GithubOTA
   bool updateAvailable() { return _updateAvailable && !_updateInProgress; }
   void startUpdate() { _startUpdate = _updateStarted = true; }
   uint16_t getProgress() { return _progress; }
+  bool updateStarted() { return _updateStarted; }
   bool updateInProgress() { return _updateInProgress || _updateStarted; }
   bool updateAborted() { return _updateAborted; }
   Firmware getCurrentFirmwareVersion() { return _currentFwVersion; }

@@ -54,6 +54,7 @@ class WiFiManagerCustom : public WiFiManager
  public:
   WiFiManagerCustom() : WiFiManager() {}
   WiFiManagerCustom(Print& consolePort) : WiFiManager(consolePort) {}
+  void setConfigPortalSSID(String apName) { _apName = apName; }
 
  protected:
   bool _allowExit = false;    // Allow the user to exit the configuration portal

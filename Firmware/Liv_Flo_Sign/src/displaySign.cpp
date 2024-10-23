@@ -53,8 +53,8 @@ void DisplaySign::updateTask(void)
   {
     if(i < pos)
     {
-      // pixels.setPixelColor(i, 0xFC5400);
-      pixels.setPixelColor(i, 0x00FFFF);
+      pixels.setPixelColor(i, 0xFC5400);
+      // pixels.setPixelColor(i, 0x00FFFF);
     }
     else
     {

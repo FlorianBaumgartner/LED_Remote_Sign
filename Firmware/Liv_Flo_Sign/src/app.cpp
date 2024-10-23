@@ -55,7 +55,7 @@ void App::appTask(void* pvParameter)
 
     if(app->utils.getConnectionState())
     {
-      if(app->githubOTA.updateAvailable())
+      if(app->githubOTA.updateAvailable() && !app->githubOTA.updateInProgress())
       {
         console.log.println("[APP] Update available, shut down services");
         app->discord.enable(false);

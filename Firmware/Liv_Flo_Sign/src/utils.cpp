@@ -20,6 +20,20 @@ const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   
 
 WiFiManagerParameter Utils::custom_mqtt_server("server", "mqtt server", "", 40);
 
+const char* colorPickerHTML = 
+  "<!DOCTYPE html><html><head>"
+  "<meta charset='utf-8'>"
+  "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+  "<title>ESP Color Picker</title>"
+  "<script src='https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js'></script>"
+  "</head><body>"
+  "<h1>RGB Color Picker</h1>"
+  "<form action='/color' method='GET'>"
+  "<input class='jscolor' name='rgb' value='FFFFFF'>"
+  "<input type='submit' value='Set Color'>"
+  "</form>"
+  "</body></html>";
+
 
 bool Utils::begin(void)
 {
@@ -33,9 +47,10 @@ bool Utils::begin(void)
   wm.setConnectRetries(100);
   std::vector<const char*> menuItems = {"wifi", "param", "info", "update"};    // Don't display "Exit" in the menu
   wm.setMenu(menuItems);
-  wm.setClass("invert");    // Dark theme
-
+  wm.setClass("invert");        // Dark theme
+  wm.setConfigPortalSSID("Liv Flo Sign");
   wm.addParameter(&custom_mqtt_server);
+  wm.setCustomMenuHTML(colorPickerHTML);
   wm.setSaveParamsCallback(saveParamsCallback);
 
   if(wm.autoConnect(WIFI_STA_SSID))
@@ -49,7 +64,7 @@ bool Utils::begin(void)
   }
 
   connectionState = false;
-  xTaskCreate(updateTask, "utils", 4096, NULL, 13, NULL);
+  xTaskCreate(updateTask, "utils", 4096, NULL, 18, NULL);
   return true;
 }
 
