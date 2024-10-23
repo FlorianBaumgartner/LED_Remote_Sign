@@ -18,3 +18,6 @@ tools/scramble_keys.py
 
 /tools/EmojiDownloader/export
 /tools/EmojiDownloader/conv
+
+# Ignore environments (env)
+env/
