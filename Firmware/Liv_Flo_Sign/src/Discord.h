@@ -123,8 +123,11 @@ class Discord
   bool enabled = true;
 
 
-  const Devices devices[5] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
-                              Devices(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2),
+  const Devices devices[8] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),
+                              Devices(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),
+                              Devices(LIV_FLO_SIGN_2, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
+                              Devices(LIV_FLO_SIGN_3, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
+                              Devices(LIV_FLO_SIGN_4, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
 
                               Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
                               Devices(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),
