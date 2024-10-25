@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
 from PyQt5.QtCore import Qt, QRectF, QTimer, QPoint
 from cpl_loader import get_components
+from animation import Animation
 import time
 
 # Global scaling factor: 1 mm = 3.779527559 pixels (based on 96 dpi, 1 inch = 25.4 mm)
@@ -15,11 +16,13 @@ FRAME_RATE_MS = 1000 // 30  # 30 Hz (33ms per frame)
 class Canvas(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Canvas with Scaling Factor")
+        self.setWindowTitle("Liv-Flo LED Sign Animation")
         # Canvas size in mm (100mm height x 140mm width)
         self.canvas_width_mm = 140
         self.canvas_height_mm = 100
         self.corner_radius_mm = 5
+
+        self.trigger = False
 
         # Convert dimensions to pixels using the scaling factor
         self.canvas_width_px = self.canvas_width_mm * MM_TO_PIXELS
@@ -31,6 +34,15 @@ class Canvas(QWidget):
 
         # List to store squares and their attributes (position, color, and orientation)
         self.squares = []
+
+    def mousePressEvent(self, event):
+        self.trigger = True
+        super().mousePressEvent(event)
+
+    def get_trigger(self):
+        temp = self.trigger
+        self.trigger = False
+        return temp
 
     def add_square(self, x_mm, y_mm, color, rotation=0):
         square_data = {
@@ -92,6 +104,8 @@ class MainWindow(QMainWindow):
         # Load components from CPL file
         LED_Matrix, LED_Sign = get_components()
 
+        Animation(LED_Sign)
+
         # Set LED_Matrix squares to black (off)
         for component in LED_Matrix:
             self.canvas.add_square(component['PosX'], component['PosY'], "#000000", component['Rot'])
@@ -111,13 +125,11 @@ class MainWindow(QMainWindow):
         self.index = 0
 
     def update_frame(self):
-        self.color *= 0  # Reset all colors to black
-
         self.index += 1
-        for i in range(len(self.color)):
-            if i < self.index:
-                self.color[i] = [0xFC, 0x54, 0x00]
 
+        # self.color = Animation.sine(self.index, self.color, self.canvas.get_trigger())
+        # self.color = Animation.trigger_test(self.index, self.color, self.canvas.get_trigger())
+        self.color = Animation.sprinkle(self.index, self.color, self.canvas.get_trigger())
 
         self.canvas.update_squares(self.color)
         self.canvas.update()  # Repaint the canvas
