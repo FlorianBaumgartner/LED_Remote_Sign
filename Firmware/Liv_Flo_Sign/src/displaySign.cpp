@@ -53,11 +53,11 @@ void DisplaySign::updateTask(void)
   {
     if(i < pos)
     {
-      // pixels.setPixelColor(i, 0xFC5400);
-      uint8_t r = millis() / 10 % 255;
-      uint8_t g = ((millis() / 10) + (255 / 3)) % 255;
-      uint8_t b = ((millis() / 10) + (2 * 255 / 3)) % 255;
-      pixels.setPixelColor(i, r, g, b);
+      pixels.setPixelColor(i, 0xFC5400);
+      // uint8_t r = millis() / 10 % 255;
+      // uint8_t g = ((millis() / 10) + (255 / 3)) % 255;
+      // uint8_t b = ((millis() / 10) + (2 * 255 / 3)) % 255;
+      // pixels.setPixelColor(i, r, g, b);
     }
     else
     {
