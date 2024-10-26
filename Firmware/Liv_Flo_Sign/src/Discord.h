@@ -76,7 +76,13 @@ class Discord
     event = latestEvent.type;
     return true;
   }
-  bool newEventAvailable() { return newEventFlag; }
+  bool newEventAvailable(bool clearFlag = true)
+  {
+    bool flag = newEventFlag;
+    if(clearFlag)
+      newEventFlag = false;
+    return flag;
+  }
   void sendEvent(const char* event);
   void enable(bool enable) { enabled = enable; }
 

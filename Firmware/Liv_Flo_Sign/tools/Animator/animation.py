@@ -10,6 +10,14 @@ class Animation:
         Animation.trigger = False
         Animation.radius = -1        # mm
 
+        # Print a cpp arrays for the coordinates of the squares
+        print(f"const float square_coordinates[{len(squares)}][2] = {{")
+        for square in squares:
+            print(f"  {{{square['PosX']}, {square['PosY']}}},")
+        print("};")
+
+        # Print the center of the canvas as cpp float
+        print(f"const float canvas_center[2] = {{{Animation.canvas_center_x}, {Animation.canvas_center_y}}};")
 
     def map(value, in_min, in_max, out_min, out_max):
         return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min

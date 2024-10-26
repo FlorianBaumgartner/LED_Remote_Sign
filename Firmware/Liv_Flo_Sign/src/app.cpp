@@ -108,10 +108,24 @@ void App::appTask(void* pvParameter)
       app->discord.sendEvent("PROXIMITY");
     }
 
-    if(app->booting && millis() > 15000)
+    if(app->discord.newEventAvailable())
     {
+      String event;
+      if(app->discord.getLatestEvent(event))
+      {
+        app->sign.setEvent(event == "PROXIMITY");
+      }
+    }
+    else
+    {
+      app->sign.setEvent(false);
+    }
+
+    static bool once = true;
+    if(!app->sign.getBootStatus() && once)
+    {
+      once = false;
       app->booting = false;
-      console.ok.println("[APP] Booting finished");
     }
 
     uint8_t brightness = map(app->sensor.getAmbientBrightness(), 0, 255, 0, app->disp.MAX_BRIGHTNESS);
