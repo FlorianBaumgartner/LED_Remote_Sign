@@ -83,10 +83,11 @@ class DisplayMatrix
   bool scrollTextNecessary = true;
   bool resetScrollPosition = false;
   float updateRate = 30;
+  int messageScrollCount = 0;
 
   size_t printMessage(const String& msg, uint32_t color, int offset = 0);
   bool drawEmoji(int x, int y, uint32_t unicode_index);
-  void scrollMessage(const String& msg, uint32_t color);
+  void scrollMessage(const String& msg, uint32_t color, int count = -1);
 };
 
 #endif

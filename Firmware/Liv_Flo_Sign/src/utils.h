@@ -104,6 +104,7 @@ class Utils
 
  private:
   static const char* resetReasons[];
+  static const char* serialNumber[];
   static Country country;
   static int32_t raw_offset;
   static int32_t dst_offset;

@@ -51,6 +51,7 @@ class DisplaySign
   void updateTask(void);
   void setBrightness(uint8_t brightness) { pixels.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
   void enable(bool enable);
+  bool getBootStatus() { return booting; }
 
 
  private:
@@ -58,6 +59,9 @@ class DisplaySign
   uint8_t updatePercentage = 0;
   float updateRate = 30;
   bool enabled = true;
+  bool booting = true;
+
+  void animationBooting(void);
 };
 
 #endif

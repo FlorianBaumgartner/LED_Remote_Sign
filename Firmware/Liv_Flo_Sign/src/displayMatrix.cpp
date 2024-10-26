@@ -34,6 +34,7 @@
 #include "../fonts/Grand9K_Pixel8_Modified.h"
 #include "../tools/Emoji/emoji_bitmaps.h"
 #include "console.h"
+#include "device.h"
 
 void DisplayMatrix::begin(float updateRate)
 {
@@ -174,7 +175,7 @@ bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // Declare the portMUX_TYPE globally or within the relevant scope
 
-void DisplayMatrix::scrollMessage(const String& msg, uint32_t color)
+void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, int count)
 {
   matrix.setPassThruColor(0);
   matrix.fillScreen(0);
@@ -186,10 +187,12 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color)
       currentMessage = msg;                                               // Update the current message
       textWidth = printMessage(currentMessage, color, matrix.width());    // Just get the text width (print outside the screen)
       scrollTextNecessary = textWidth > matrix.width();                   // Check if scrolling is necessary
+      messageScrollCount = 0;                                             // Reset the message scroll count
     }
     if(scrollTextNecessary)    // Only set the scroll position to the end if scrolling is necessary
     {
       scrollPosition = matrix.width();    // Reset scroll position to the start
+      messageScrollCount++;
     }
     resetScrollPosition = false;
   }
@@ -201,6 +204,10 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color)
   {
     scrollPosition = (matrix.width() - textWidth) / 2;    // Center the text
   }
+  if(count >= 0 && messageScrollCount > count)    // Check if we've scrolled the message enough times
+  {
+    scrollPosition = matrix.width();    // Reset scroll position to the start
+  }
   printMessage(currentMessage, color, scrollPosition);    // Continue printing the current message at the updated scroll positions
   matrix.show();
 }
@@ -210,32 +217,17 @@ void DisplayMatrix::updateTask(void)
 {
   static State lastState = (State)-1;
 
-  // Handle Events
   if(state != lastState)
   {
-    lastState = state;
     resetScrollPosition = true;    // Force a reset of the scroll position
-    switch(state)
-    {
-      case DisplayMatrix::BOOTING:
-        break;
-      case DisplayMatrix::IDLE:
-        break;
-      case DisplayMatrix::DISCONNECTED:
-        break;
-      case DisplayMatrix::SHOW_IP:
-        break;
-      case DisplayMatrix::UPDATING:
-        break;
-    }
   }
+  lastState = state;
 
-  // Handle Live Updates
   static uint8_t oldPercentage = 0;
   switch(state)
   {
     case DisplayMatrix::BOOTING:
-      scrollMessage("Booting...", 0xFFFFFF);
+      scrollMessage(Device::getDeviceName() + String(" - v") + String(FIRMWARE_VERSION), 0xFFFFFF, 1);    // Scroll Booting message only once
       break;
     case DisplayMatrix::IDLE:
       scrollMessage(newMessage, textColor);
@@ -250,9 +242,16 @@ void DisplayMatrix::updateTask(void)
       if(updatePercentage != oldPercentage)
       {
         oldPercentage = updatePercentage;
-        char percentage[5];
+        static char percentage[5];
         snprintf(percentage, sizeof(percentage), "%d%%", updatePercentage);
-        scrollMessage(String(percentage), 0xFFFFFF);
+        if(updatePercentage == 100)
+        {
+          scrollMessage("Done!", 0x00FF00);
+        }
+        else
+        {
+          scrollMessage(String(percentage), 0xFFFFFF);
+        }
       }
       break;
   }

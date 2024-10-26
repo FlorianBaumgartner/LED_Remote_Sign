@@ -34,45 +34,17 @@
 #define DISCORD_H
 
 #include <Arduino.h>
+#include "utils.h"
 
-#define LIV_FLO_SIGN_0            "D4E2D49E9EF0"    // Flo's sign (based in the appartment)
-#define LIV_FLO_SIGN_1            "CCD0D49E9EF0"    // Flo's sign (based in the lab)
-#define LIV_FLO_SIGN_2            "3C17D29E9EF0"    // Liv's sign ()
-#define LIV_FLO_SIGN_3            "50FCD49E9EF0"    // Liv's sign ()
-#define LIV_FLO_SIGN_4            "309ED59E9EF0"    // Backup
-
-
-#define ESP32C3_DEV_BOARD_RGB_LED "AC6EBB03F784"
-#define ESP32C3_DEV_BOARD_LCD     "542C474E76A0"
-#define ESP32S3_DEV_BOARD_BLING   "A869D87554DC"
-
-#define PHONE_LIV                 "PHONE_LIV"
-#define PHONE_FLO                 "PHONE_FLO"
-
-
-// Message strcuture: "Sender:Message"
+// Message strcuture: "<Sender>:<Message>"
 // Example message: "PHONE_LIV:Hello World! ✨"
 
-// Event structure: "Sender_UnixTimestamp:Event"
+// Event structure: "<Sender>_<UnixTimestamp>:<Event>"
 // Example event: "AC6EBB03F784_1633363200:ButtonTrigger"
 
+#define DISCORD_UPDATE_INTERVAL 1.0    // [s]  Interval to check for new messages
+#define EVENT_VALIDITY_TIME     20     // [s]  Time within an event is seen as new and therefore valid
 
-#define DISCORD_UPDATE_INTERVAL   1.0    // [s]  Interval to check for new messages
-#define EVENT_VALIDITY_TIME       20     // [s]  Time within an event is seen as new and therefore valid
-
-class Devices
-{
- public:
-  constexpr static const int maxMessageCountPerRequest = 15;
-
-  Devices(const char* name, const char* receiveMessagesFrom, const char** receiveEventsFrom, const int receiveEventsFromCount)
-      : myName(name), receiveMessagesFrom(receiveMessagesFrom), receiveEventsFrom(receiveEventsFrom), receiveEventsFromCount(receiveEventsFromCount)
-  {}
-  const char* myName;
-  const char* receiveMessagesFrom;
-  const char** receiveEventsFrom;
-  const int receiveEventsFromCount;
-};
 
 class Event
 {
@@ -85,6 +57,8 @@ class Event
 class Discord
 {
  public:
+  constexpr static const int maxMessageCountPerRequest = 15;
+
   Discord();
   bool begin();
   String& getLatestMessage() { return latestMessage; }
@@ -122,21 +96,10 @@ class Discord
   bool outgoingEventFlag = false;
   bool enabled = true;
 
-
-  const Devices devices[8] = {Devices(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),
-                              Devices(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),
-                              Devices(LIV_FLO_SIGN_2, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
-                              Devices(LIV_FLO_SIGN_3, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
-                              Devices(LIV_FLO_SIGN_4, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
-
-                              Devices(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
-                              Devices(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),
-                              Devices(ESP32S3_DEV_BOARD_BLING, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2)};
-
   constexpr static const int httpsPort = 443;
   constexpr static const char* discordHost = "discord.com";
 
-  void getDeviceName(char* deviceName);
+
   bool checkForMessages();
   bool checkForOutgoingEvents();
   static void updateTask(void* pvParameter);

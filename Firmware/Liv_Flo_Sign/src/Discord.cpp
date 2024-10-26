@@ -36,6 +36,7 @@
 #include <esp_system.h>
 #include "ArduinoJson.h"
 #include "console.h"
+#include "device.h"
 #include "secrets.h"
 #include "utils.h"
 
@@ -44,29 +45,21 @@ Discord::Discord() {}
 
 bool Discord::begin()
 {
-  getDeviceName(myName);
+  Device::getDeviceSerial(myName);
   console.log.printf("[DISCORD] ESP32 Serial Number: %s\n", myName);
-
-  for(int i = 0; i < sizeof(devices) / sizeof(devices[0]); i++)    // Retreive myDeviceIndex from devices
-  {
-    if(strcmp(devices[i].myName, myName) == 0)
-    {
-      myDeviceIndex = i;
-      console.log.printf("[DISCORD] I'm the device: %s (List Index: %d)\n", devices[i].myName, myDeviceIndex);
-      break;
-    }
-  }
+  myDeviceIndex = Device::getDeviceIndex();
   if(myDeviceIndex == -1)
   {
     console.error.println("[DISCORD] Device not found in devices list.");
     return false;
   }
-  console.log.printf("[DISCORD] Listening for messages from: %s\n", devices[myDeviceIndex].receiveMessagesFrom);
+  console.log.printf("[DISCORD] I'm the device: %s (List Index: %d)\n", Device::devices[myDeviceIndex].myName, myDeviceIndex);
+  console.log.printf("[DISCORD] Listening for messages from: %s\n", Device::devices[myDeviceIndex].receiveMessagesFrom);
   console.log.print("[DISCORD] Listening for events from: ");
-  for(int i = 0; i < devices[myDeviceIndex].receiveEventsFromCount; i++)
+  for(int i = 0; i < Device::devices[myDeviceIndex].receiveEventsFromCount; i++)
   {
-    console.log.printf("%s", devices[myDeviceIndex].receiveEventsFrom[i]);
-    if(i < devices[myDeviceIndex].receiveEventsFromCount - 1)
+    console.log.printf("%s", Device::devices[myDeviceIndex].receiveEventsFrom[i]);
+    if(i < Device::devices[myDeviceIndex].receiveEventsFromCount - 1)
     {
       console.log.print(", ");
     }
@@ -88,11 +81,6 @@ void Discord::sendEvent(const char* event)
   outgoingEventFlag = true;
 }
 
-void Discord::getDeviceName(char* deviceName)
-{
-  uint64_t chipId = ESP.getEfuseMac();    // Unique ID from ESP32-C3 (12 bytes)
-  sprintf(deviceName, "%04X%08X", (uint16_t)(chipId >> 32), (uint32_t)chipId);
-}
 bool Discord::checkForMessages()
 {
   WiFiClientSecure client;
@@ -117,7 +105,7 @@ bool Discord::checkForMessages()
       return false;
     }
 
-    String apiUrlWithLimit = apiUrl + "&limit=" + String(Devices::maxMessageCountPerRequest);
+    String apiUrlWithLimit = apiUrl + "&limit=" + String(maxMessageCountPerRequest);
     if(lastMessageId.length() > 0)    // If there's a last message ID, use it to fetch older messages
     {
       apiUrlWithLimit += "&before=" + lastMessageId;
@@ -217,10 +205,10 @@ bool Discord::checkForMessages()
     {
       String discordEntry = doc[i]["content"].as<String>();
       if(discordEntry.startsWith(
-           (String(devices[myDeviceIndex].receiveMessagesFrom) + ":").c_str()))    // Search for the last message entry that is meant for this device
+           (String(Device::devices[myDeviceIndex].receiveMessagesFrom) + ":").c_str()))    // Search for the last message entry that is meant
       {
         String sender = discordEntry.substring(0, discordEntry.indexOf(":"));
-        discordEntry.remove(0, strlen(devices[myDeviceIndex].receiveMessagesFrom) + 1);    // Remove the sender from the message
+        discordEntry.remove(0, strlen(Device::devices[myDeviceIndex].receiveMessagesFrom) + 1);    // Remove the sender from the message
         if(discordEntry == latestMessage)    // If the message is the same as the last one, we don't need to process it
         {
           client.stop();
@@ -236,9 +224,9 @@ bool Discord::checkForMessages()
       }
       if(!foundEvent)    // While we are searching the latest message, we can also check for events
       {
-        for(int j = 0; j < devices[myDeviceIndex].receiveEventsFromCount; j++)
+        for(int j = 0; j < Device::devices[myDeviceIndex].receiveEventsFromCount; j++)
         {
-          if(discordEntry.startsWith((String(devices[myDeviceIndex].receiveEventsFrom[j]) + "_").c_str()))    // Search for the last event entry
+          if(discordEntry.startsWith((String(Device::devices[myDeviceIndex].receiveEventsFrom[j]) + "_").c_str()))
           {
             uint32_t timestamp = discordEntry.substring(discordEntry.indexOf("_") + 1, discordEntry.indexOf(":")).toInt();
             String event = discordEntry.substring(discordEntry.indexOf(":") + 1);
@@ -252,7 +240,8 @@ bool Discord::checkForMessages()
               latestEvent = Event(event, timestamp);
               newEventFlag = true;
               foundEvent = true;
-              console[COLOR_CYAN].printf("[DISCORD] New Event received from [%s]: %s\n", devices[myDeviceIndex].receiveEventsFrom[j], event.c_str());
+              console[COLOR_CYAN].printf("[DISCORD] New Event received from [%s]: %s\n", Device::devices[myDeviceIndex].receiveEventsFrom[j],
+                                         event.c_str());
               console[COLOR_DEFAULT].print("");
               break;
             }
@@ -266,7 +255,7 @@ bool Discord::checkForMessages()
   }
   if(!foundMessage)
   {
-    console.log.printf("[DISCORD] No message containing '%s' found.\n", devices[myDeviceIndex].receiveMessagesFrom);
+    console.log.printf("[DISCORD] No message containing '%s' found.\n", Device::devices[myDeviceIndex].receiveMessagesFrom);
   }
   return true;
 }
@@ -288,7 +277,7 @@ bool Discord::checkForOutgoingEvents()
   }
   String eventString = String(myName) + "_" + String(Utils::getUnixTime()) + ":" + eventMessageToSend;
   String payload = "{\"content\":\"" + eventString + "\"}";
-  String apiUrlWithLimit = apiUrl + "&limit=" + String(Devices::maxMessageCountPerRequest);
+  String apiUrlWithLimit = apiUrl + "&limit=" + String(maxMessageCountPerRequest);
 
   client.print(String("POST ") + apiUrlWithLimit + " HTTP/1.1\r\n" + "Host: " + discordHost + "\r\n" + "Authorization: Bot " + apiToken + "\r\n" +
                "User-Agent: ESP32\r\n" + "Content-Type: application/json\r\n" + "Content-Length: " + payload.length() + "\r\n" +

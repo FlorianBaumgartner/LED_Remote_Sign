@@ -1,15 +1,15 @@
 /******************************************************************************
- * file    displaySign.h
+ * file    device.cpp
  *******************************************************************************
- * brief   Handles the LED Sign Display
+ * brief   Contains all device and message routing information
  *******************************************************************************
  * author  Florian Baumgartner
  * version 1.0
- * date    2024-10-20
+ * date    2024-10-26
  *******************************************************************************
  * MIT License
  *
- * Copyright (c) 2022 Crelin - Florian Baumgartner
+ * Copyright (c) 2024 Crelin - Florian Baumgartner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,68 +30,13 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "DisplaySign.h"
-#include "console.h"
+#include "device.h"
 
-void DisplaySign::begin(float updateRate)
-{
-  this->updateRate = updateRate;
-  pixels.begin();
-  pixels.clear();
-  pixels.show();
-}
-
-
-void DisplaySign::updateTask(void)
-{
-  if(!enabled)
-  {
-    return;
-  }
-
-  if(booting)
-  {
-    animationBooting();
-    return;
-  }
-
-  // static int pos = 0;
-  // for(int i = 0; i < pixels.numPixels(); i++)
-  // {
-  //   if(i < pos)
-  //   {
-  //     pixels.setPixelColor(i, 0xFC5400);
-  //     // uint8_t r = millis() / 10 % 255;
-  //     // uint8_t g = ((millis() / 10) + (255 / 3)) % 255;
-  //     // uint8_t b = ((millis() / 10) + (2 * 255 / 3)) % 255;
-  //     // pixels.setPixelColor(i, r, g, b);
-  //   }
-  //   else
-  //   {
-  //     pixels.setPixelColor(i, 0, 0, 0);
-  //   }
-  // }
-  // pos = (pos + 1) % pixels.numPixels();
-
-  // pixels.show();
-}
-
-void DisplaySign::enable(bool enable)
-{
-  enabled = enable;
-  if(!enabled)
-  {
-    pixels.clear();
-    pixels.show();
-  }
-}
-
-
-void DisplaySign::animationBooting(void)
-{
-  static int pos = 0;
-
-  // for(int i = 0; i < )
-
-  pixels.show();
-}
+const Device Device::devices[8] = {Device(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),
+                                   Device(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),
+                                   Device(LIV_FLO_SIGN_2, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
+                                   Device(LIV_FLO_SIGN_3, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
+                                   Device(LIV_FLO_SIGN_4, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),
+                                   Device(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
+                                   Device(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),
+                                   Device(ESP32S3_DEV_BOARD_BLING, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2)};

@@ -4,6 +4,7 @@
 #include "HTTPClient.h"
 #include "console.h"
 #include "esp_wifi.h"
+#include "device.h"
 
 WiFiManagerCustom Utils::wm(console.log);
 Utils::Country Utils::country = Utils::Unknown;
@@ -45,18 +46,20 @@ bool Utils::begin(void)
   wm.setConfigPortalBlocking(false);
   wm.setConnectTimeout(180);
   wm.setConnectRetries(100);
-  std::vector<const char*> menuItems = {"wifi", "param", "info", "update"};    // Don't display "Exit" in the menu
+  std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
   wm.setMenu(menuItems);
   wm.setClass("invert");        // Dark theme
-  wm.setConfigPortalSSID("Liv Flo Sign");
+  wm.setConfigPortalSSID(Device::getDeviceName());
   wm.addParameter(&custom_mqtt_server);
-  wm.setCustomMenuHTML(colorPickerHTML);
+  const char* menuhtml = "<form action='/param' method='get'><button>Custom</button></form><br/>\n";
+  // wm.setCustomMenuHTML(colorPickerHTML);
+  wm.setCustomMenuHTML(menuhtml);
   wm.setSaveParamsCallback(saveParamsCallback);
 
   if(wm.autoConnect(WIFI_STA_SSID))
   {
     console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
-    wm.startConfigPortal();
+    wm.startConfigPortal(Device::getDeviceName().c_str());
   }
   else
   {

@@ -64,6 +64,7 @@ class App
   DisplaySign& sign;
 
   Timer showIpAddressTimer;
+  bool booting = true;
 
   static void appTask(void* pvParameter);
   static void ledTask(void* pvParameter);
