@@ -71,12 +71,12 @@ void DisplaySign::updateTask(void)
   animationSine(framecount, eventFlag);
   t = millis() - t;
 
-  static int u = 0;
-  if(millis() - u > 1000)
-  {
-    console.log.printf("[DISP_SIG] Frame time: %d ms\n", t);
-    u = millis();
-  }
+  // static int u = 0;
+  // if(millis() - u > 1000)
+  // {
+  //   console.log.printf("[DISP_SIG] Frame time: %d ms\n", t);
+  //   u = millis();
+  // }
 }
 
 void DisplaySign::enable(bool enable)
@@ -141,11 +141,11 @@ void DisplaySign::animationSine(uint32_t framecount, bool eventFlag)
     913,  920,  927,  933,  939,  945,  951,  956,  961,  965,  970,  974,  978,   981,  984,  987,  990,  992,  994,  996,  997,  998,  999,  999};
 
 
-  int16_t angle_offset = (framecount * speed) % 360;    // Modulo to wrap around 360 degrees
+  int16_t angle_offset = (framecount * -speed) % 360;    // Negative to reverse direction
   for(int i = 0; i < pixels.numPixels(); i++)
   {
     int16_t x = square_coordinates[i][0] - canvas_center[0];
-    int16_t angle = (-(abs(x) * 360) / wavelength_mm + angle_offset) % 360;
+    int16_t angle = ((abs(x) * 360) / wavelength_mm + angle_offset) % 360;
     int16_t val = cos_lut[angle];    // Lookup cosine value
     uint8_t red = low_color[0] + (val + 1000) * (high_color[0] - low_color[0]) / 2000;
     uint8_t green = low_color[1] + (val + 1000) * (high_color[1] - low_color[1]) / 2000;

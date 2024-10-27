@@ -3,8 +3,8 @@
 #include <time.h>
 #include "HTTPClient.h"
 #include "console.h"
-#include "esp_wifi.h"
 #include "device.h"
+#include "esp_wifi.h"
 
 WiFiManagerCustom Utils::wm(console.log);
 Utils::Country Utils::country = Utils::Unknown;
@@ -21,7 +21,7 @@ const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   
 
 WiFiManagerParameter Utils::custom_mqtt_server("server", "mqtt server", "", 40);
 
-const char* colorPickerHTML = 
+const char* colorPickerHTML =
   "<!DOCTYPE html><html><head>"
   "<meta charset='utf-8'>"
   "<meta name='viewport' content='width=device-width, initial-scale=1'>"
@@ -46,14 +46,19 @@ bool Utils::begin(void)
   wm.setConfigPortalBlocking(false);
   wm.setConnectTimeout(180);
   wm.setConnectRetries(100);
-  std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
+  std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "custom", "update"};    // Don't display "Exit" in the menu
   wm.setMenu(menuItems);
-  wm.setClass("invert");        // Dark theme
+  wm.setClass("invert");    // Dark theme
   wm.setConfigPortalSSID(Device::getDeviceName());
   wm.addParameter(&custom_mqtt_server);
-  const char* menuhtml = "<form action='/param' method='get'><button>Custom</button></form><br/>\n";
-  // wm.setCustomMenuHTML(colorPickerHTML);
-  wm.setCustomMenuHTML(menuhtml);
+  // HTML for additional elements like a slider and button in the "param" page
+  const char* customHTML =
+    "<br><label for='brightness'>Brightness</label><br>"
+    "<input type='range' id='brightness' name='brightness' min='0' max='100' value='50'><br>"
+    "<label for='apply'>Apply changes:</label><br>"
+    "<button type='submit' id='apply' name='apply'>Save Settings</button><br>";
+
+  wm.setCustomMenuHTML(customHTML);    // Adds HTML to the "param" settings page
   wm.setSaveParamsCallback(saveParamsCallback);
 
   if(wm.autoConnect(WIFI_STA_SSID))
@@ -172,7 +177,7 @@ void Utils::updateTask(void* pvParameter)
 
       connectionStateOld = connectionState;
       connectionState = WiFi.status() == WL_CONNECTED;
-      if((!connectionStateOld && connectionState) ||  !timezoneValid)     // Retry getting time zone info
+      if((!connectionStateOld && connectionState) || !timezoneValid)    // Retry getting time zone info
       {
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;

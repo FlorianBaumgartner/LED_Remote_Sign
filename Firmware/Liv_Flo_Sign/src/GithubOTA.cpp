@@ -140,8 +140,9 @@ bool GithubOTA::checkForUpdates()
       console.log.printf("[GITHUB_OTA] Update Start\n");
     });
     httpUpdate.onEnd([]() {
-      _updateInProgress = false;
-      _updateAvailable = false;
+      // Just keep the update status for now as we will restart the device
+      // _updateInProgress = false;
+      // _updateAvailable = false;
       console.log.printf("[GITHUB_OTA] Update End\n");
     });
     httpUpdate.onError([](int error) {
