@@ -53,55 +53,58 @@ void App::appTask(void* pvParameter)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
 
-    if(app->utils.getConnectionState())
+    if(!app->booting)
     {
-      if(app->githubOTA.updateAvailable() && !app->githubOTA.updateInProgress())
+      if(app->utils.getConnectionState())
       {
-        console.log.println("[APP] Update available, shut down services");
-        app->discord.enable(false);
-        app->sign.enable(false);
-        app->sensor.enable(false);
-        app->githubOTA.startUpdate();
-      }
-      if(app->githubOTA.updateAborted())
-      {
-        console.error.println("[APP] Update aborted");
-        app->discord.enable(true);
-        app->sign.enable(true);
-        app->sensor.enable(true);
-        app->disp.setState(DisplayMatrix::IDLE);
-        app->disp.setMessage("Update aborted");
-      }
+        if(app->githubOTA.updateAvailable() && !app->githubOTA.updateInProgress())
+        {
+          console.log.println("[APP] Update available, shut down services");
+          app->discord.enable(false);
+          app->sign.enable(false);
+          app->sensor.enable(false);
+          app->githubOTA.startUpdate();
+        }
+        if(app->githubOTA.updateAborted())
+        {
+          console.error.println("[APP] Update aborted");
+          app->discord.enable(true);
+          app->sign.enable(true);
+          app->sensor.enable(true);
+          app->disp.setState(DisplayMatrix::IDLE);
+          app->disp.setMessage("Update aborted");
+        }
 
-      if(app->utils.getButtonShortPressEvent())
-      {
-        app->showIpAddressTimer.start(IP_ADDRESS_SHOW_TIME * 1000);
-        IPAddress ipAddr = WiFi.localIP();
-        static char ipStr[16];
-        sprintf(ipStr, "%d.%d.%d.%d", ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
-        app->disp.setIpAdress(String(ipStr));
-        app->disp.setState(DisplayMatrix::SHOW_IP);
-      }
-      if(app->utils.getButtonLongPressEvent())
-      {
-        console.log.println("[APP] Long press event, reset settings");
-        app->utils.resetSettings();
-      }
+        if(app->utils.getButtonShortPressEvent())
+        {
+          app->showIpAddressTimer.start(IP_ADDRESS_SHOW_TIME * 1000);
+          IPAddress ipAddr = WiFi.localIP();
+          static char ipStr[16];
+          sprintf(ipStr, "%d.%d.%d.%d", ipAddr[0], ipAddr[1], ipAddr[2], ipAddr[3]);
+          app->disp.setIpAdress(String(ipStr));
+          app->disp.setState(DisplayMatrix::SHOW_IP);
+        }
+        if(app->utils.getButtonLongPressEvent())
+        {
+          console.log.println("[APP] Long press event, reset settings");
+          app->utils.resetSettings();
+        }
 
-      if(app->githubOTA.updateInProgress())
-      {
-        app->disp.setState(DisplayMatrix::UPDATING);
-        app->disp.setUpdatePercentage(app->githubOTA.getProgress());
+        if(app->githubOTA.updateInProgress())
+        {
+          app->disp.setState(DisplayMatrix::UPDATING);
+          app->disp.setUpdatePercentage(app->githubOTA.getProgress());
+        }
+        else if(app->showIpAddressTimer.expired())    // Show IP address instead of message while timer is running
+        {
+          app->disp.setState(DisplayMatrix::IDLE);
+          app->disp.setMessage(app->discord.getLatestMessage());
+        }
       }
-      else if(app->showIpAddressTimer.expired())    // Show IP address instead of message while timer is running
+      else
       {
-        app->disp.setState(DisplayMatrix::IDLE);
-        app->disp.setMessage(app->discord.getLatestMessage());
+        app->disp.setState(DisplayMatrix::DISCONNECTED);
       }
-    }
-    else if(!app->booting)
-    {
-      app->disp.setState(DisplayMatrix::DISCONNECTED);
     }
 
     if(app->sensor.getProxEvent())
