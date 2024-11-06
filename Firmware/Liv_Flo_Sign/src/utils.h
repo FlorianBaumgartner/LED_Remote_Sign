@@ -76,7 +76,6 @@ class Utils
   static constexpr const float BUTTON_LONG_PRESS_TIME = 4.0;    // [s]  Time to hold the button for a long press
 
   static WiFiManagerCustom wm;
-  static WiFiManagerParameter custom_mqtt_server;
 
   Utils(int buttonPin) { this->buttonPin = buttonPin; }
   static bool begin(void);
@@ -115,6 +114,8 @@ class Utils
 
   static bool shortPressEvent;
   static bool longPressEvent;
+
+  static WiFiManagerParameter time_interval_slider;
 
   static void saveParamsCallback();
 

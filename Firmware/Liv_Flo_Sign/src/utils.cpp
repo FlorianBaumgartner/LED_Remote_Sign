@@ -19,7 +19,42 @@ bool Utils::timezoneValid = false;
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
 
-WiFiManagerParameter Utils::custom_mqtt_server("server", "mqtt server", "", 40);
+WiFiManagerParameter Utils::time_interval_slider(
+  "time_interval",    // ID for the slider
+  "<link href='https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css' rel='stylesheet'>"
+  "<style>"
+  "#slider { margin-top: 10px; }"
+  "#slider .noUi-handle { background-color: #0073e6; border-radius: 50%; height: 16px; width: 16px; top: -5px; }"
+  "#slider .noUi-connect { background: #0073e6; }"
+  ".noUi-target, .noUi-base, .noUi-connects { background: transparent; border: none; }"
+  ".noUi-horizontal .noUi-handle:before, .noUi-horizontal .noUi-handle:after, .noUi-tooltip { display: none; }"
+  "</style>"
+  "<div style='color: #FFFFFF; font-family: Arial, sans-serif; font-size: 14px;'>Select Time Interval</div>"
+  "<div id='slider'></div>"
+  "<div style='display: flex; justify-content: space-between; color: #FFFFFF; font-family: Arial, sans-serif;'>"
+  "<span id='startTime'>00:00</span><span id='endTime'>23:59</span></div>"
+  "<script src='https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js'></script>"
+  "<script>"
+  "const slider = document.getElementById('slider');"
+  "noUiSlider.create(slider, {"
+  "  start: [0, 95], connect: true, range: { 'min': 0, 'max': 95 }, step: 1,"
+  "  format: {"
+  "    to: v => {"
+  "      const h = Math.floor(v / 4).toString().padStart(2, '0');"
+  "      const m = ((v % 4) * 15).toString().padStart(2, '0');"
+  "      return `${h}:${m}`;"
+  "    },"
+  "    from: Number }"
+  "});"
+  "const startTime = document.getElementById('startTime');"
+  "const endTime = document.getElementById('endTime');"
+  "slider.noUiSlider.on('update', v => { startTime.textContent = v[0]; endTime.textContent = v[1]; });"
+  "slider.noUiSlider.on('change', v => { document.getElementById('time_interval').value = `${v[0]}-${v[1]}`; });"
+  "</script>",
+  "00:00-23:59",    // Default value
+  16                // Length of value storage
+);
+
 
 const char* colorPickerHTML =
   "<!DOCTYPE html><html><head>"
@@ -46,19 +81,11 @@ bool Utils::begin(void)
   wm.setConfigPortalBlocking(false);
   wm.setConnectTimeout(180);
   wm.setConnectRetries(100);
-  std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "custom", "update"};    // Don't display "Exit" in the menu
+  std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
   wm.setMenu(menuItems);
   wm.setClass("invert");    // Dark theme
   wm.setConfigPortalSSID(Device::getDeviceName());
-  wm.addParameter(&custom_mqtt_server);
-  // HTML for additional elements like a slider and button in the "param" page
-  const char* customHTML =
-    "<br><label for='brightness'>Brightness</label><br>"
-    "<input type='range' id='brightness' name='brightness' min='0' max='100' value='50'><br>"
-    "<label for='apply'>Apply changes:</label><br>"
-    "<button type='submit' id='apply' name='apply'>Save Settings</button><br>";
-
-  wm.setCustomMenuHTML(customHTML);    // Adds HTML to the "param" settings page
+  wm.addParameter(&time_interval_slider);
   wm.setSaveParamsCallback(saveParamsCallback);
 
   if(wm.autoConnect(WIFI_STA_SSID))
@@ -78,11 +105,24 @@ bool Utils::begin(void)
 
 void Utils::saveParamsCallback()
 {
-  console.log.println("Get Params:");
-  console.log.print(custom_mqtt_server.getID());
-  console.log.print(" : ");
-  console.log.println(custom_mqtt_server.getValue());
+  console.log.printf("[UTILS] Saving parameters\n");
+
+  // Access the list of parameters safely
+  WiFiManagerParameter** params = wm.getParameters();
+  int numParams = wm.getParametersCount();
+  console.log.printf("[UTILS] Parameter count: %d\n", numParams);
+
+  // Retrieve and print time interval parameter
+  if(time_interval_slider.getValue() != nullptr)
+  {
+    console.log.printf("[UTILS] Time Interval: %s\n", time_interval_slider.getValue());
+  }
+  else
+  {
+    console.log.printf("[UTILS] Time Interval parameter is null or uninitialized\n");
+  }
 }
+
 
 uint32_t Utils::getUnixTime()
 {

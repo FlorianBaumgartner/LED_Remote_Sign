@@ -64,7 +64,14 @@ size_t DisplayMatrix::printMessage(const String& msg, uint32_t color, int offset
     {
       utf8_code_index = 0;
       utf8_code_length = 0;
-      matrix.write(msg[i]);
+      if(msg[i] == '\n' || msg[i] == '\r')  // check for carriage return and newline characters (replace with space)
+      {
+        matrix.write(' ');
+      }
+      else
+      {
+        matrix.write(msg[i]);
+      }
     }
     else if((msg[i] & 0xC0) == 0x80)    // Check if the character is a continuation of a UTF-8 character
     {

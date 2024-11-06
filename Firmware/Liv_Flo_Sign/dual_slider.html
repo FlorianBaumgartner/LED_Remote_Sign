@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time Interval Slider</title>
+    <link href="https://cdn.jsdelivr.net/gh/jahiidh/double-range-slider/d.slider.css" rel="stylesheet" />
+    <style>
+        .range-slider {
+            height: 5px;
+            position: relative;
+            background-color: #e1e9f6;
+            border-radius: 2px;
+        }
+
+        .range-fill {
+            height: 100%;
+            position: absolute;
+            border-radius: 5px;
+            background-color: #007bff;
+        }
+
+        .range-input input {
+            position: absolute;
+            width: 100%;
+            height: 5px;
+            top: -7px;
+            background: none;
+            pointer-events: none;
+            -webkit-appearance: none;
+        }
+
+        .range-input input::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background-color: #007bff;
+            border: 4px solid #80bfff;
+            pointer-events: auto;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .text-input {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="double-range">
+        <h2>Time Interval</h2>
+        <div class="range-slider">
+            <span class="range-fill"></span>
+        </div>
+        <div class="range-input">
+            <input type="range" class="min" min="0" max="1439" value="0" step="15" />
+            <input type="range" class="max" min="0" max="1439" value="120" step="15" />
+        </div>
+        <div class="text-input">
+            <label>Start</label>
+            <input type="text" name="min" value="00:00" readonly />
+            <label>End</label>
+            <input type="text" name="max" value="02:00" readonly />
+        </div>
+    </div>
+
+    <script>
+        const range = document.querySelector(".range-fill");
+        const range_input = document.querySelectorAll(".range-input input");
+        const text_input = document.querySelectorAll(".text-input input");
+
+        function dRange(range, ri, ti) {
+            ri.forEach(input => {
+                input.addEventListener("input", () => {
+                    ti[0].value = convertToTime(ri[0].value);
+                    ti[1].value = convertToTime(ri[1].value);
+                    update_dRange();
+                });
+            });
+
+            const update_dRange = () => {
+                const min = parseFloat(ri[0].value);
+                const max = parseFloat(ri[1].value);
+                const stepPercentage = 100 / (ri[0].max - ri[0].min);
+
+                range.style.left = (min - ri[0].min) * stepPercentage + "%";
+                range.style.right = 100 - (max - ri[0].min) * stepPercentage + "%";
+            };
+
+            function convertToTime(value) {
+                const hours = String(Math.floor(value / 60)).padStart(2, '0');
+                const minutes = String(value % 60).padStart(2, '0');
+                return `${hours}:${minutes}`;
+            }
+
+            update_dRange();
+        }
+
+        dRange(range, range_input, text_input);
+    </script>
+</body>
+
+</html>

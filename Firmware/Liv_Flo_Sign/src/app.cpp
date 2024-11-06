@@ -82,6 +82,11 @@ void App::appTask(void* pvParameter)
         app->disp.setIpAdress(String(ipStr));
         app->disp.setState(DisplayMatrix::SHOW_IP);
       }
+      if(app->utils.getButtonLongPressEvent())
+      {
+        console.log.println("[APP] Long press event, reset settings");
+        app->utils.resetSettings();
+      }
 
       if(app->githubOTA.updateInProgress())
       {
@@ -90,14 +95,11 @@ void App::appTask(void* pvParameter)
       }
       else if(app->showIpAddressTimer.expired())    // Show IP address instead of message while timer is running
       {
-        if(!app->booting)
-        {
-          app->disp.setState(DisplayMatrix::IDLE);
-          app->disp.setMessage(app->discord.getLatestMessage());
-        }
+        app->disp.setState(DisplayMatrix::IDLE);
+        app->disp.setMessage(app->discord.getLatestMessage());
       }
     }
-    else
+    else if(!app->booting)
     {
       app->disp.setState(DisplayMatrix::DISCONNECTED);
     }
