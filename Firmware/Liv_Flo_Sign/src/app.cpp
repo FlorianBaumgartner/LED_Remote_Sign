@@ -99,11 +99,13 @@ void App::appTask(void* pvParameter)
         {
           app->disp.setState(DisplayMatrix::IDLE);
           app->disp.setMessage(app->discord.getLatestMessage());
+          app->sign.enable(true);
         }
       }
       else
       {
         app->disp.setState(DisplayMatrix::DISCONNECTED);
+        app->sign.enable(false);
       }
     }
 

@@ -44,7 +44,7 @@
 #include "credentials.h"
 #include "utils.hpp"
 
-#define LED_PIN 18
+#define LED_PIN 7
 
 
 const int httpsPort = 443;
@@ -57,7 +57,7 @@ WiFiClientSecure client;
 Utils utils;
 Preferences preferences;
 Adafruit_NeoMatrix matrix =
-  Adafruit_NeoMatrix(40, 8, LED_PIN, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
+  Adafruit_NeoMatrix(40, 7, LED_PIN, NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
 
 const uint8_t image_0[] = {
   0,   0,   0,   255, 159, 0,   253, 215, 99,  253, 234, 142, 253, 217, 104, 246, 158, 8,   0,   0,   0,  255, 148, 10, 255, 213, 85,  255, 255, 164,

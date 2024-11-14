@@ -39,14 +39,13 @@
 
 #define LED            10
 #define BLINK_INTERVAL 1000
-#define LED_RGB_PIN    8
+#define LED_RGB_PIN    7
 
-#define TOTAL_LEDS     480
-#define LED_MATRIX_H   5
-#define LED_MATRIX_W   TOTAL_LEDS / LED_MATRIX_H
+#define LED_MATRIX_H   7
+#define LED_MATRIX_W   40
 
-Adafruit_NeoMatrix matrix =
-  Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN, NEO_MATRIX_TOP + NEO_MATRIX_RIGHT + NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_MATRIX_W, LED_MATRIX_H, LED_RGB_PIN,
+                                               NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE, NEO_GRB + NEO_KHZ800);
 
 void setup()
 {
@@ -57,7 +56,7 @@ void setup()
   console.log.println("OK, Let's go");
 
   matrix.begin();
-  matrix.setRotation(2);
+  // matrix.setRotation(2);
   matrix.setTextWrap(false);
   matrix.setBrightness(10);
   matrix.setTextColor(matrix.Color(255, 0, 255));
@@ -94,7 +93,7 @@ void loop()
   const int len = strlen(msg) * 6;
 
   matrix.fillScreen(0);
-  matrix.setCursor(x, -2);
+  matrix.setCursor(x, 0);
   matrix.print(msg);
   static uint32_t tShift = 0;
   if(millis() - tShift >= 50)

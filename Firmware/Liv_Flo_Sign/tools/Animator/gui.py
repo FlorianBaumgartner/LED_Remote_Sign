@@ -127,9 +127,9 @@ class MainWindow(QMainWindow):
     def update_frame(self):
         self.index += 1
 
-        # self.color = Animation.sine(self.index, self.color, self.canvas.get_trigger())
+        self.color = Animation.sine(self.index, self.color, self.canvas.get_trigger())
         # self.color = Animation.trigger_test(self.index, self.color, self.canvas.get_trigger())
-        self.color = Animation.sprinkle(self.index, self.color, self.canvas.get_trigger())
+        # self.color = Animation.sprinkle(self.index, self.color, self.canvas.get_trigger())
 
         self.canvas.update_squares(self.color)
         self.canvas.update()  # Repaint the canvas

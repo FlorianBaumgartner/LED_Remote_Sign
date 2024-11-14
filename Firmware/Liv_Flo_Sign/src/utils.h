@@ -71,9 +71,9 @@ class Utils
     Unknown = 2
   };
 
-  static constexpr const char* WIFI_STA_SSID = "Liv Flo Sign";
   static constexpr const float UTILS_UPDATE_RATE = 2.0;         // [Hz]  Interval to check for internet connection and time update
-  static constexpr const float BUTTON_LONG_PRESS_TIME = 4.0;    // [s]  Time to hold the button for a long press
+  static constexpr const float BUTTON_TIMER_RATE = 100.0;       // [Hz]  Timer rate for button press detection
+  static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;    // [s]  Time to hold the button for a long press
 
   static WiFiManagerCustom wm;
 
@@ -112,15 +112,16 @@ class Utils
   static bool connectionState;
   static int buttonPin;
 
+  static hw_timer_t* Timer0_Cfg;
   static bool shortPressEvent;
   static bool longPressEvent;
 
   static WiFiManagerParameter time_interval_slider;
 
   static void saveParamsCallback();
-
   static bool updateTimeZoneOffset();
   static void updateTask(void* pvParameter);
+  static void timerISR(void);
 };
 
 #endif

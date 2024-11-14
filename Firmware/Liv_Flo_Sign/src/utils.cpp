@@ -11,6 +11,7 @@ Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
 int Utils::buttonPin = -1;
+hw_timer_t* Utils::Timer0_Cfg = NULL;
 bool Utils::connectionState = false;
 bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
@@ -82,24 +83,46 @@ bool Utils::begin(void)
   wm.setConnectTimeout(180);
   wm.setConnectRetries(100);
   std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
+  const char* headhtml =
+    "<link rel='icon' type='image/png' "
+    "href='data:image/"
+    "png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADQElEQVRoQ+2YjW0VQQyE7Q6gAkgFkAogFUAqgFQAVACpAKiAUAFQAaECQgWECggVGH1PPrRvn3dv9/"
+    "YkFOksoUhhfzwz9ngvKrc89JbnLxuA/63gpsCmwCADWwkNEji8fVNgotDM7osI/"
+    "x777x5l9F6JyB8R4eeVql4P0y8yNsjM7KGIPBORp558T04A+CwiH1UVUItiUQmZ2XMReSEiAFgjAPBeVS96D+sCYGaUx4cFbLfmhSpnqnrZuqEJgJnd8cQplVLciAgX//"
+    "Cf0ToIeOB9wpmloLQAwpnVmAXgdf6pwjpJIz+XNoeZQQZlODV9vhc1Tuf6owrAk/"
+    "8qIhFbJH7eI3eEzsvydQEICqBEkZwiALfF70HyHPpqScPV5HFjeFu476SkRA0AzOfy4hYwstj2ZkDgaphE7m6XqnoS7Q0BOPs/"
+    "sw0kDROzjdXcCMFCNwzIy0EcRcOvBACfh4k0wgOmBX4xjfmk4DKTS31hgNWIKBCI8gdzogTgjYjQWFMw+o9LzJoZ63GUmjWm2wGDc7EvDDOj/"
+    "1IVMIyD9SUAL0WEhpriRlXv5je5S+U1i2N88zdPuoVkeB+ls4SyxCoP3kVm9jsjpEsBLoOBNC5U9SwpGdakFkviuFP1keblATkTENTYcxkzgxTKOI3jyDxqLkQT87pMA++"
+    "H3XvJBYtsNbBN6vuXq5S737WqHkW1VgMQNXJ0RshMqbbT33sJ5kpHWymzcJjNTeJIymJZtSQd9NHQHS1vodoFoTMkfbJzpRnLzB2vi6BZAJxWaCr+62BC+"
+    "jzAxVJb3dmmiLzLwZhZNPE5e880Suo2AZgB8e8idxherqUPnT3brBDTlPxO3Z66rVwIwySXugdNd+5ejhqp/"
+    "+NmgIwGX3Py3QBmlEi54KlwmjkOytQ+iJrLJj23S4GkOeecg8G091no737qvRRdzE+"
+    "HLALQoMTBbJgBsCj5RSWUlUVJiZ4SOljb05eLFWgoJ5oY6yTyJp62D39jDANoKKcSocPJD5dQYzlFAFZJflUArgTPZKZwLXAnHmerfJquUkKZEgyzqOb5TuDt1P3nwxobqwPocZA11m4A1mB"
+    "x5IxNgRH21ti7KbAGiyNn3HoF/gJ0w05A8xclpwAAAABJRU5ErkJggg==' />";
+  wm.setCustomHeadElement(headhtml);
   wm.setMenu(menuItems);
-  wm.setClass("invert");    // Dark theme
+  wm.setDarkMode(true);
   wm.setConfigPortalSSID(Device::getDeviceName());
+  wm.startWebPortal();
   wm.addParameter(&time_interval_slider);
   wm.setSaveParamsCallback(saveParamsCallback);
 
-  if(wm.autoConnect(WIFI_STA_SSID))
+  if(wm.autoConnect(Device::getDeviceName().c_str()))
   {
     console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
     wm.startConfigPortal(Device::getDeviceName().c_str());
   }
   else
   {
-    console.warning.println("[UTILS] Configportal running");
+    console.warning.println(String("[UTILS] Configportal running: ") + Device::getDeviceName());
   }
 
   connectionState = false;
   xTaskCreate(updateTask, "utils", 4096, NULL, 18, NULL);
+
+  Timer0_Cfg = timerBegin(0, 80, true);
+  timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
+  timerAlarmWrite(Timer0_Cfg, 1000000 / BUTTON_TIMER_RATE, true);
+  timerAlarmEnable(Timer0_Cfg);
   return true;
 }
 
@@ -187,37 +210,13 @@ void Utils::updateTask(void* pvParameter)
     TickType_t task_last_tick = xTaskGetTickCount();
     wm.process();    // Keep the WifiManager responsive
 
-    static uint32_t buttonPressTime = 0;
-    static bool buttonOld = false, buttonNew = false, longPressEarly = false;
-    buttonOld = buttonNew;
-    buttonNew = !digitalRead(buttonPin);
-
-    if(!longPressEarly)
-    {
-      if(millis() - buttonPressTime > BUTTON_LONG_PRESS_TIME * 1000)
-      {
-        longPressEvent = true;
-        longPressEarly = true;    // Prevent multiple long press events
-      }
-      if(buttonOld && !buttonNew)    // Button was released
-      {
-        shortPressEvent = true;
-      }
-    }
-    if(!buttonNew)
-    {
-      buttonPressTime = millis();    // Keep the time of the last time the button was unpressed
-      longPressEarly = false;
-    }
-
-
     if(millis() - t >= 1000 / UTILS_UPDATE_RATE)
     {
       t = millis();
 
       connectionStateOld = connectionState;
       connectionState = WiFi.status() == WL_CONNECTED;
-      if((!connectionStateOld && connectionState) || !timezoneValid)    // Retry getting time zone info
+      if((!connectionStateOld && connectionState) || (!timezoneValid && !wm.getConfigPortalActive()))    // Retry getting time zone info
       {
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;
@@ -253,5 +252,31 @@ void Utils::updateTask(void* pvParameter)
     }
 
     vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(10));    // 10ms delay keep the WifiManager responsive
+  }
+}
+
+void Utils::timerISR(void)
+{
+  static uint32_t buttonPressTime = 0;
+  static bool buttonOld = false, buttonNew = false, longPressEarly = false;
+  buttonOld = buttonNew;
+  buttonNew = !digitalRead(buttonPin);
+
+  if(!longPressEarly)
+  {
+    if(millis() - buttonPressTime > BUTTON_LONG_PRESS_TIME * 1000)
+    {
+      longPressEvent = true;
+      longPressEarly = true;    // Prevent multiple long press events
+    }
+    if(buttonOld && !buttonNew)    // Button was released
+    {
+      shortPressEvent = true;
+    }
+  }
+  if(!buttonNew)
+  {
+    buttonPressTime = millis();    // Keep the time of the last time the button was unpressed
+    longPressEarly = false;
   }
 }

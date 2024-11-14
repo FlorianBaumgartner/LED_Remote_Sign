@@ -33,20 +33,20 @@
 #include <Arduino.h>
 #include "Discord.h"
 #include "GithubOTA.h"
+#include "app.h"
 #include "console.h"
 #include "displayMatrix.h"
 #include "displaySign.h"
 #include "sensor.h"
 #include "utils.h"
-#include "app.h"
 
-#define LED_MATRIX_PIN   7
-#define LED_SIGNAL_PIN   8
-#define BTN_PIN          9
+#define LED_MATRIX_PIN 7
+#define LED_SIGNAL_PIN 8
+#define BTN_PIN        9
 
-#define LED_SIGN_COUNT   268
-#define LED_MATRIX_H     7
-#define LED_MATRIX_W     40
+#define LED_SIGN_COUNT 268
+#define LED_MATRIX_H   7
+#define LED_MATRIX_W   40
 
 
 Utils utils(BTN_PIN);

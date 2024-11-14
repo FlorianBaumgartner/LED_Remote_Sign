@@ -44,14 +44,13 @@ void DisplaySign::begin(float updateRate)
 
 void DisplaySign::updateTask(void)
 {
-  if(!enabled)
-  {
-    return;
-  }
-
   if(booting)
   {
     animationBooting();
+    return;
+  }
+  if(!enabled)
+  {
     return;
   }
 
@@ -79,10 +78,12 @@ void DisplaySign::updateTask(void)
   // }
 }
 
-void DisplaySign::enable(bool enable)
+void DisplaySign::enable(bool en)
 {
-  enabled = enable;
-  if(!enabled)
+  static bool enabledOld = false;
+  enabledOld = enabled;
+  enabled = en;
+  if(!enabled && enabledOld)
   {
     pixels.clear();
     pixels.show();
@@ -117,10 +118,10 @@ void DisplaySign::animationBooting(void)
 
 void DisplaySign::animationSine(uint32_t framecount, bool eventFlag)
 {
-  const int16_t speed = 5;             // Integer speed multiplier
-  const int16_t wavelength_mm = 80;    // Integer wavelength
-  const uint8_t high_color[3] = {0xFF, 0x00, 0x00};
-  const uint8_t low_color[3] = {0xFF, 0x00, 0xFF};
+  const int16_t speed = 1;              // Integer speed multiplier
+  const int16_t wavelength_mm = 150;    // Integer wavelength
+  const uint8_t high_color[3] = {0xFF, 0x08, 0x08};
+  const uint8_t low_color[3] = {0xFF, 0x54, 0x00};
 
   // Cosine lookup table for values between -1 and 1 scaled to an integer range [-1000, 1000]
   static const int16_t cos_lut[360] = {
