@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <time.h>
 #include "HTTPClient.h"
@@ -150,11 +151,17 @@ void Utils::saveParamsCallback()
 uint32_t Utils::getUnixTime()
 {
   struct tm timeinfo;
-  static uint32_t lastCheck = 0;
-  if(millis() - lastCheck > 10000)    // Check every 10 seconds what the current time offset is
+  static int lastCheck = -TIMEZONE_UPDATE_INTERVAL * 1000;
+  static bool timezoneValidOld = false;
+  if(millis() - lastCheck > TIMEZONE_UPDATE_INTERVAL * 1000)    // Check every n seconds what the current time offset is
   {
     lastCheck = millis();
+    timezoneValidOld = timezoneValid;
     timezoneValid = updateTimeZoneOffset();
+    if(!timezoneValidOld && timezoneValid)
+    {
+      console.ok.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
+    }
   }
   getCurrentTime(timeinfo);
   time_t now;
@@ -180,22 +187,67 @@ bool Utils::getCurrentTime(struct tm& timeinfo)
 bool Utils::updateTimeZoneOffset()
 {
   const char* ntpServer = "pool.ntp.org";
-  const char* timeApiUrl = "http://worldtimeapi.org/api/ip";
 
+  bool receivedTimeOffset = (USE_IPAPI) ? getOffsetFromIpapi() : getOffsetFromWorldTimeAPI();
+  if(receivedTimeOffset)
+  {
+    configTime(raw_offset + dst_offset, 0, ntpServer);
+    return true;
+  }
+  console.error.println("[UTILS] Failed to obtain time zone offset");
+  configTime(0, 0, ntpServer);
+  return false;
+}
+
+bool Utils::getOffsetFromWorldTimeAPI()
+{
+  static const char* timeApiUrl = "http://worldtimeapi.org/api/ip";
   HTTPClient http;
   http.begin(timeApiUrl);
   int httpCode = http.GET();
   if(httpCode != 200)
   {
-    console.error.printf("[UTILS] Unable to fetch the time info\n");
-    configTime(0, 0, ntpServer);
+    console.error.printf("[UTILS] Unable to fetch the time info from WorldTimeAPI: %d\n", httpCode);
+    http.end();
     return false;
   }
   String response = http.getString();
   raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
   dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
   http.end();
-  configTime(raw_offset + dst_offset, 0, ntpServer);
+  return true;
+}
+
+bool Utils::getOffsetFromIpapi()
+{
+  static const char* timeApiUrl = "https://api.ipapi.is/";
+  HTTPClient http;
+  http.begin(timeApiUrl);
+  int httpCode = http.GET();
+  if(httpCode != 200)
+  {
+    console.error.printf("[UTILS] Unable to fetch the time info from Ipapi: %d\n", httpCode);
+    http.end();
+    return false;
+  }
+  String payload = http.getString();
+  http.end();
+  static JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, payload);
+  if(error)
+  {
+    console.error.printf("[UTILS] Failed to parse JSON: %s\n", error.c_str());
+    return false;
+  }
+  String localTime = doc["location"]["local_time"].as<String>();    // e.g., "2024-11-14T20:42:49-06:00"
+  bool is_dst = doc["location"]["is_dst"].as<bool>();
+
+  localTime = localTime.substring(19);    // Remove the date part
+  int offsetMinutes = localTime.substring(localTime.length() - 2).toInt();
+  localTime = localTime.substring(0, localTime.length() - 3);
+  int offsetHours = localTime.toInt();
+  raw_offset = offsetHours * 3600 + offsetMinutes * 60;
+  dst_offset = is_dst ? 3600 : 0;    // 1 hour if DST is active, else 0
   return true;
 }
 
@@ -240,8 +292,7 @@ void Utils::updateTask(void* pvParameter)
             console.log.println("[UTILS] Country: Unknown");
           }
         }
-        timezoneValid = updateTimeZoneOffset();
-        console.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
+        getUnixTime();    // Get time offset from the internet
         struct tm timeinfo;
         getCurrentTime(timeinfo);
       }
@@ -257,7 +308,7 @@ void Utils::updateTask(void* pvParameter)
 
 void Utils::timerISR(void)
 {
-  static uint32_t buttonPressTime = 0;
+  static uint32_t buttonPressTime = millis();
   static bool buttonOld = false, buttonNew = false, longPressEarly = false;
   buttonOld = buttonNew;
   buttonNew = !digitalRead(buttonPin);

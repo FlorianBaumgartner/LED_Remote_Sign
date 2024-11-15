@@ -150,6 +150,7 @@ bool Discord::checkForMessages()
     }
 
     String payload;
+    payload.reserve(1024);
     while(client.connected() || client.available())
     {
       if(outgoingEventFlag)    // Early exit during payload reading
@@ -158,7 +159,6 @@ bool Discord::checkForMessages()
         client.stop();
         return false;
       }
-
       payload += client.readString();
     }
 
@@ -171,7 +171,6 @@ bool Discord::checkForMessages()
       }
       latestDiscordPayload = payload;
       firstRun = false;
-      // console.log.println("[DISCORD] New messages available");
     }
 
     // Trim to get valid JSON content

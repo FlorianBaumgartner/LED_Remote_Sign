@@ -74,6 +74,8 @@ class Utils
   static constexpr const float UTILS_UPDATE_RATE = 2.0;         // [Hz]  Interval to check for internet connection and time update
   static constexpr const float BUTTON_TIMER_RATE = 100.0;       // [Hz]  Timer rate for button press detection
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;    // [s]  Time to hold the button for a long press
+  static constexpr const int TIMEZONE_UPDATE_INTERVAL = 10;     // [s]  Interval to update the time zone offset
+  static constexpr const bool USE_IPAPI = true;                 // Use IPAPI to get the time zone offset
 
   static WiFiManagerCustom wm;
 
@@ -117,6 +119,9 @@ class Utils
   static bool longPressEvent;
 
   static WiFiManagerParameter time_interval_slider;
+
+  static bool getOffsetFromWorldTimeAPI();
+  static bool getOffsetFromIpapi();
 
   static void saveParamsCallback();
   static bool updateTimeZoneOffset();
