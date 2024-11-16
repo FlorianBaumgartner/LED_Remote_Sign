@@ -51,6 +51,8 @@ void DisplaySign::updateTask(void)
   }
   if(!enabled)
   {
+    pixels.clear();
+    pixels.show();
     return;
   }
 
@@ -76,18 +78,6 @@ void DisplaySign::updateTask(void)
   //   console.log.printf("[DISP_SIG] Frame time: %d ms\n", t);
   //   u = millis();
   // }
-}
-
-void DisplaySign::enable(bool en)
-{
-  static bool enabledOld = false;
-  enabledOld = enabled;
-  enabled = en;
-  if(!enabled && enabledOld)
-  {
-    pixels.clear();
-    pixels.show();
-  }
 }
 
 

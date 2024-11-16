@@ -50,7 +50,7 @@ class DisplaySign
   void begin(float updateRate = 30);
   void updateTask(void);
   void setBrightness(uint8_t brightness) { pixels.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
-  void enable(bool en);
+  void enable(bool en) { enabled = en; }
   bool getBootStatus() { return booting; }
   void setEvent(bool status) { event = status; }
 

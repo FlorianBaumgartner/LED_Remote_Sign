@@ -60,10 +60,9 @@ App app(utils, sensor, discord, githubOTA, disp, sign);
 
 void setup()
 {
-  pinMode(BTN_PIN, INPUT_PULLUP);
   console.begin();
-  utils.begin();
   app.begin();
+  utils.begin();
 }
 
 void loop()

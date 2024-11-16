@@ -75,14 +75,15 @@ const char* colorPickerHTML =
 
 bool Utils::begin(void)
 {
+  pinMode(buttonPin, INPUT_PULLUP);
+
   esp_reset_reason_t resetReason = esp_reset_reason();
   console.log.printf("[UTILS] Reset reason: %s\n", resetReasons[resetReason]);    // Panic, Watchdog is bad
 
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
   wm.setConfigPortalBlocking(false);
-  wm.setConnectTimeout(180);
-  wm.setConnectRetries(100);
+  wm.setConnectTimeout(0);
   std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
   const char* headhtml =
     "<link rel='icon' type='image/png' "
@@ -106,17 +107,7 @@ bool Utils::begin(void)
   wm.startWebPortal();
   wm.addParameter(&time_interval_slider);
   wm.setSaveParamsCallback(saveParamsCallback);
-
-  if(wm.autoConnect(Device::getDeviceName().c_str()))
-  {
-    console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
-    wm.startConfigPortal(Device::getDeviceName().c_str());
-  }
-  else
-  {
-    console.warning.println(String("[UTILS] Configportal running: ") + Device::getDeviceName());
-  }
-
+  reconnectWiFi(5, true);
   connectionState = false;
   xTaskCreate(updateTask, "utils", 4096, NULL, 18, NULL);
 
@@ -145,6 +136,27 @@ void Utils::saveParamsCallback()
   {
     console.log.printf("[UTILS] Time Interval parameter is null or uninitialized\n");
   }
+}
+
+bool Utils::reconnectWiFi(int retries, bool verbose)
+{
+  wm.setConnectRetries(retries);
+  if(WiFi.softAPgetStationNum() > 0)    // Abort if someone has already connected to the device (AP)
+  {
+    console.warning.println("[UTILS] Aborting reconnect: Client connected to config portal.");
+    return false;
+  }
+  if(wm.autoConnect(Device::getDeviceName().c_str()))
+  {
+    console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
+    wm.startConfigPortal(Device::getDeviceName().c_str());
+    return true;
+  }
+  if(verbose)
+  {
+    console.warning.println(String("[UTILS] Configportal running: ") + Device::getDeviceName());
+  }
+  return false;
 }
 
 
@@ -299,6 +311,15 @@ void Utils::updateTask(void* pvParameter)
       else if(connectionStateOld && !connectionState)
       {
         console.warning.println("[UTILS] Disconnected from WiFi");
+      }
+      if(!connectionState)
+      {
+        static int t = 0;
+        if(millis() - t > WIFI_RECONNECT_INTERVAL * 1000)
+        {
+          t = millis();
+          reconnectWiFi();
+        }
       }
     }
 

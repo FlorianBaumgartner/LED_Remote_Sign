@@ -150,7 +150,7 @@ bool Discord::checkForMessages()
     }
 
     String payload;
-    payload.reserve(1024);
+    // payload.reserve(1024);
     while(client.connected() || client.available())
     {
       if(outgoingEventFlag)    // Early exit during payload reading

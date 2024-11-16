@@ -53,6 +53,13 @@ void App::appTask(void* pvParameter)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
 
+    // static int t = 0;
+    // if(millis() - t > 500)
+    // {
+    //   t = millis();
+    //   console.log.printf("Free Heap: %d, Max Heap: %d\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+    // }
+
     if(!app->booting)
     {
       if(app->utils.getConnectionState())
