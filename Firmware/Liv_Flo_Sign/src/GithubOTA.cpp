@@ -46,6 +46,7 @@ uint16_t GithubOTA::_progress = 0;
 HTTPClient GithubOTA::http;
 WiFiClient GithubOTA::base_client;
 ESP_SSLClient GithubOTA::client;
+WiFiClientSecure GithubOTA::otaClient;
 
 GithubOTA::GithubOTA() {}
 
@@ -96,7 +97,7 @@ bool GithubOTA::checkForUpdates()
   }
 
   client.setTimeout(10000);
-  client.setBufferSizes(8192 /* rx */, 512 /* tx */);
+  client.setBufferSizes(1024 /* rx */, 1024 /* tx */);
   client.setDebugLevel(1);    // none = 0, error = 1, warn = 2, info = 3, dump = 4
   client.setClient(&base_client);
   client.setInsecure();    // Using insecure connection for testing
@@ -110,8 +111,6 @@ bool GithubOTA::checkForUpdates()
     _startUpdate = false;
     return false;    // Server not available
   }
-  http.useHTTP10(false);
-  http.setReuse(true);
 
   http.addHeader("Cache-Control", "no-cache");    // no cache
   http.addHeader("Connection", "keep-alive");     // Ensure persistent connection
@@ -134,6 +133,8 @@ bool GithubOTA::checkForUpdates()
   _latestFwVersion = decodeFirmwareString(onlineFirmware.c_str());
   _updateAvailable = compareFirmware(_latestFwVersion, _currentFwVersion) > 0;    // Check if update is available
   // console.log.printf("[GITHUB_OTA] Online: %s, Current: %s, Update: %s\n", _latestFwVersion.toString().c_str(), _currentFwVersion.toString().c_str(), _updateAvailable ? "Yes" : "No");
+  http.end();
+  client.stop();
 
   if(_startUpdate && _updateAvailable)
   {
@@ -161,7 +162,8 @@ bool GithubOTA::checkForUpdates()
       console.log.printf("[GITHUB_OTA] Update Progress: %d%%\n", (current * 100) / total);
     });
 
-    t_httpUpdate_return ret = httpUpdate.update(http);
+    otaClient.setInsecure();
+    t_httpUpdate_return ret = httpUpdate.update(otaClient, firmwareUrl);
     switch(ret)
     {
       case HTTP_UPDATE_FAILED:

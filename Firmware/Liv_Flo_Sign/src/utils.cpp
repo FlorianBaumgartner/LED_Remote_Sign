@@ -165,11 +165,17 @@ bool Utils::reconnectWiFi(int retries, bool verbose)
 uint32_t Utils::getUnixTime()
 {
   struct tm timeinfo;
+  static bool timezoneValidOld = false;
   static int lastCheck = -TIMEZONE_UPDATE_INTERVAL * 1000;
   if(millis() - lastCheck > TIMEZONE_UPDATE_INTERVAL * 1000)    // Check every n seconds what the current time offset is
   {
     lastCheck = millis();
+    timezoneValidOld = timezoneValid;
     timezoneValid = updateTimeZoneOffset();
+    if(timezoneValid && !timezoneValidOld)
+    {
+      console.log.printf("[UTILS] Updated time zone to: %d h\n", (raw_offset + dst_offset) / 3600);
+    }
   }
   getCurrentTime(timeinfo);
   time_t now;
@@ -227,8 +233,6 @@ bool Utils::getOffsetFromWorldTimeAPI()
     raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
     dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
     http.end();
-
-    console.log.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
     return true;
   }
   return false;
@@ -275,8 +279,6 @@ bool Utils::getOffsetFromIpapi()
     int offsetHours = localTime.toInt();
     raw_offset = offsetHours * 3600 + offsetMinutes * 60;
     dst_offset = is_dst ? 3600 : 0;    // 1 hour if DST is active, else 0
-
-    console.log.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
     return true;
   }
   return false;

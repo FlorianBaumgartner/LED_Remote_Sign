@@ -196,8 +196,8 @@ bool Discord::checkForMessages()
       return false;
     }
 
-    // static StaticJsonDocument<20000> doc;
-    DynamicJsonDocument doc(12000);
+    static StaticJsonDocument<12000> doc;
+    // DynamicJsonDocument doc(12000);
     DeserializationError error = deserializeJson(doc, payload);
     if(error)
     {

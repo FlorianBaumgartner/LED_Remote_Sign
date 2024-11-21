@@ -64,7 +64,7 @@ size_t DisplayMatrix::printMessage(const String& msg, uint32_t color, int offset
     {
       utf8_code_index = 0;
       utf8_code_length = 0;
-      if(msg[i] == '\n' || msg[i] == '\r')  // check for carriage return and newline characters (replace with space)
+      if(msg[i] == '\n' || msg[i] == '\r')    // check for carriage return and newline characters (replace with space)
       {
         matrix.write(' ');
       }
@@ -219,6 +219,16 @@ void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, int count)
   matrix.show();
 }
 
+void DisplayMatrix::setUpdatePercentage(int percentage)
+{
+  updatePercentage = percentage;
+  if(percentage < 0)
+  {
+    resetScrollPosition = true;
+    scrollMessage("Update", 0xFFFF00);
+  }
+}
+
 
 void DisplayMatrix::updateTask(void)
 {
@@ -249,14 +259,14 @@ void DisplayMatrix::updateTask(void)
       if(updatePercentage != oldPercentage)
       {
         oldPercentage = updatePercentage;
-        static char percentage[5];
-        snprintf(percentage, sizeof(percentage), "%d%%", updatePercentage);
         if(updatePercentage == 100)
         {
           scrollMessage("Done!", 0x00FF00);
         }
-        else
+        else if(updatePercentage >= 0)
         {
+          static char percentage[5];
+          snprintf(percentage, sizeof(percentage), "%d%%", updatePercentage);
           scrollMessage(String(percentage), 0xFFFFFF);
         }
       }

@@ -64,7 +64,7 @@ class DisplayMatrix
   void updateTask(void);
   void setBrightness(uint8_t brightness) { matrix.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
   void setState(State newState) { state = newState; }
-  void setUpdatePercentage(uint8_t percentage) { updatePercentage = percentage; }
+  void setUpdatePercentage(int percentage);
   void setMessage(const String& msg) { newMessage = msg; }
   void setIpAdress(const String& ipAddr) { ipAddress = ipAddr; }
 
@@ -72,7 +72,7 @@ class DisplayMatrix
  private:
   Adafruit_NeoMatrix matrix;
   State state = BOOTING;
-  uint8_t updatePercentage = 0;
+  int updatePercentage = 0;
   String currentMessage = "";
   String newMessage = "";
   String ipAddress = "";

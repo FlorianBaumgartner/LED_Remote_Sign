@@ -69,6 +69,8 @@ void App::appTask(void* pvParameter)
           console.log.println("[APP] Update available, shut down services");
           app->discord.enable(false);
           app->sign.enable(false);
+          app->disp.setUpdatePercentage(-1);    // Show update message
+          app->disp.setState(DisplayMatrix::UPDATING);
           app->sensor.enable(false);
           app->githubOTA.startUpdate();
         }
@@ -99,7 +101,6 @@ void App::appTask(void* pvParameter)
 
         if(app->githubOTA.updateInProgress())
         {
-          app->disp.setState(DisplayMatrix::UPDATING);
           app->disp.setUpdatePercentage(app->githubOTA.getProgress());
         }
         else if(app->showIpAddressTimer.expired())    // Show IP address instead of message while timer is running

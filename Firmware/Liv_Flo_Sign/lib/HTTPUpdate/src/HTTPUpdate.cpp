@@ -187,13 +187,9 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient& http, const String& curren
 
     // use HTTP/1.0 for update since the update handler not support any transfer Encoding
     http.useHTTP10(true);
-    http.setTimeout(_httpClientTimeout);
     http.setReuse(true);
-    
-    // http.setFollowRedirects(_followRedirects);
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); // Handle redirects
-    http.setTimeout(15000); // Adjust timeout
-    http.addHeader("Connection", "keep-alive"); // Add only once
+    http.setTimeout(_httpClientTimeout);
+    http.setFollowRedirects(_followRedirects);
     http.setUserAgent("ESP32-http-Update");
     http.addHeader("Cache-Control", "no-cache");
     http.addHeader("x-ESP32-STA-MAC", WiFi.macAddress());
@@ -231,9 +227,9 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient& http, const String& curren
     // track these headers
     http.collectHeaders(headerkeys, headerkeyssize);
 
+
     int code = http.GET();
     int len = http.getSize();
-    log_d("HTTP response code: %d\n", code);
 
     if(code <= 0) {
         log_e("HTTP error: %s\n", http.errorToString(code).c_str());

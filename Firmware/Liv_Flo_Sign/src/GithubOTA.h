@@ -36,6 +36,7 @@
 #include <Arduino.h>
 #include <ESP_SSLClient.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>   // Needed for OTA Update, since it does not work with the ESP_SSLClient
 
 #define REPO_NAME
 
@@ -80,6 +81,7 @@ class GithubOTA
   static HTTPClient http;
   static WiFiClient base_client;
   static ESP_SSLClient client;
+  static WiFiClientSecure otaClient;
 
   Firmware decodeFirmwareString(const char* version);
   int compareFirmware(Firmware a, Firmware b);    // Returns 1 if a > b, -1 if a < b, 0 if a == b
