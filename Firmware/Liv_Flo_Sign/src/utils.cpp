@@ -80,11 +80,13 @@ bool Utils::begin(void)
   esp_reset_reason_t resetReason = esp_reset_reason();
   console.log.printf("[UTILS] Reset reason: %s\n", resetReasons[resetReason]);    // Panic, Watchdog is bad
 
+  WiFi.begin();
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
+  WiFi.setSleep(false);
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
   wm.setConfigPortalBlocking(false);
   wm.setConnectTimeout(0);
-  std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
+  static std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
   const char* headhtml =
     "<link rel='icon' type='image/png' "
     "href='data:image/"
@@ -109,7 +111,7 @@ bool Utils::begin(void)
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
   connectionState = false;
-  xTaskCreate(updateTask, "utils", 4096, NULL, 18, NULL);
+  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);   // Stack Watermark: 4672
 
   Timer0_Cfg = timerBegin(0, 80, true);
   timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
@@ -164,16 +166,10 @@ uint32_t Utils::getUnixTime()
 {
   struct tm timeinfo;
   static int lastCheck = -TIMEZONE_UPDATE_INTERVAL * 1000;
-  static bool timezoneValidOld = false;
   if(millis() - lastCheck > TIMEZONE_UPDATE_INTERVAL * 1000)    // Check every n seconds what the current time offset is
   {
     lastCheck = millis();
-    timezoneValidOld = timezoneValid;
     timezoneValid = updateTimeZoneOffset();
-    if(!timezoneValidOld && timezoneValid)
-    {
-      console.ok.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
-    }
   }
   getCurrentTime(timeinfo);
   time_t now;
@@ -198,7 +194,7 @@ bool Utils::getCurrentTime(struct tm& timeinfo)
 
 bool Utils::updateTimeZoneOffset()
 {
-  const char* ntpServer = "pool.ntp.org";
+  static const char* ntpServer = "pool.ntp.org";
 
   bool receivedTimeOffset = (USE_IPAPI) ? getOffsetFromIpapi() : getOffsetFromWorldTimeAPI();
   if(receivedTimeOffset)
@@ -214,53 +210,76 @@ bool Utils::updateTimeZoneOffset()
 bool Utils::getOffsetFromWorldTimeAPI()
 {
   static const char* timeApiUrl = "http://worldtimeapi.org/api/ip";
-  HTTPClient http;
-  http.begin(timeApiUrl);
-  int httpCode = http.GET();
-  if(httpCode != 200)
+  static HTTPClient http;
+  static const int retryCount = 3;
+  for(int i = 0; i < retryCount; i++)
   {
-    console.error.printf("[UTILS] Unable to fetch the time info from WorldTimeAPI: %d\n", httpCode);
+    http.begin(timeApiUrl);
+    int httpCode = http.GET();
+    if(httpCode != 200)
+    {
+      console.error.printf("[UTILS] Unable to fetch the time info from WorldTimeAPI: %d\n", httpCode);
+      http.end();
+      delay(250);
+      continue;
+    }
+    String response = http.getString();
+    raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
+    dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
     http.end();
-    return false;
+
+    console.log.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
+    return true;
   }
-  String response = http.getString();
-  raw_offset = response.substring(response.indexOf("\"raw_offset\":") + 13, response.indexOf(",\"week_number\"")).toInt();
-  dst_offset = response.substring(response.indexOf("\"dst_offset\":") + 13, response.indexOf(",\"dst_from\"")).toInt();
-  http.end();
-  return true;
+  return false;
 }
 
 bool Utils::getOffsetFromIpapi()
 {
   static const char* timeApiUrl = "https://api.ipapi.is/";
-  HTTPClient http;
-  http.begin(timeApiUrl);
-  int httpCode = http.GET();
-  if(httpCode != 200)
+  static HTTPClient http;
+  static const int retryCount = 3;
+  for(int i = 0; i < retryCount; i++)
   {
-    console.error.printf("[UTILS] Unable to fetch the time info from Ipapi: %d\n", httpCode);
+    http.begin(timeApiUrl);
+    http.setUserAgent("Mozilla/5.0 (compatible; LivFloSign/1.0)");
+    int httpCode = http.GET();
+    if(httpCode != 200)
+    {
+      if(httpCode == 403)
+      {
+        console.error.println("[UTILS] To many requests to Ipapi, try again later.");
+        http.end();
+        return false;
+      }
+      console.error.printf("[UTILS] Unable to fetch the time info from Ipapi: %d\n", httpCode);
+      http.end();
+      delay(250);
+      continue;
+    }
+    String payload = http.getString();
     http.end();
-    return false;
-  }
-  String payload = http.getString();
-  http.end();
-  static JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, payload);
-  if(error)
-  {
-    console.error.printf("[UTILS] Failed to parse JSON: %s\n", error.c_str());
-    return false;
-  }
-  String localTime = doc["location"]["local_time"].as<String>();    // e.g., "2024-11-14T20:42:49-06:00"
-  bool is_dst = doc["location"]["is_dst"].as<bool>();
+    static StaticJsonDocument<2048> doc;
+    DeserializationError error = deserializeJson(doc, payload);
+    if(error)
+    {
+      console.error.printf("[UTILS] Failed to parse JSON: %s\n", error.c_str());
+      return false;
+    }
+    String localTime = doc["location"]["local_time"].as<String>();    // e.g., "2024-11-14T20:42:49-06:00"
+    bool is_dst = doc["location"]["is_dst"].as<bool>();
 
-  localTime = localTime.substring(19);    // Remove the date part
-  int offsetMinutes = localTime.substring(localTime.length() - 2).toInt();
-  localTime = localTime.substring(0, localTime.length() - 3);
-  int offsetHours = localTime.toInt();
-  raw_offset = offsetHours * 3600 + offsetMinutes * 60;
-  dst_offset = is_dst ? 3600 : 0;    // 1 hour if DST is active, else 0
-  return true;
+    localTime = localTime.substring(19);    // Remove the date part
+    int offsetMinutes = localTime.substring(localTime.length() - 2).toInt();
+    localTime = localTime.substring(0, localTime.length() - 3);
+    int offsetHours = localTime.toInt();
+    raw_offset = offsetHours * 3600 + offsetMinutes * 60;
+    dst_offset = is_dst ? 3600 : 0;    // 1 hour if DST is active, else 0
+
+    console.log.printf("[UTILS] Time Offset: %d h\n", (raw_offset + dst_offset) / 3600);
+    return true;
+  }
+  return false;
 }
 
 void Utils::updateTask(void* pvParameter)
@@ -285,7 +304,7 @@ void Utils::updateTask(void* pvParameter)
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;
 
-        wifi_country_t myCountry;
+        static wifi_country_t myCountry;
         if(esp_wifi_get_country(&myCountry) == ESP_OK)
         {
           if(strncmp(myCountry.cc, "CH", 2) == 0)
@@ -305,7 +324,7 @@ void Utils::updateTask(void* pvParameter)
           }
         }
         getUnixTime();    // Get time offset from the internet
-        struct tm timeinfo;
+        static struct tm timeinfo;
         getCurrentTime(timeinfo);
       }
       else if(connectionStateOld && !connectionState)
@@ -318,7 +337,7 @@ void Utils::updateTask(void* pvParameter)
         if(millis() - t > WIFI_RECONNECT_INTERVAL * 1000)
         {
           t = millis();
-          reconnectWiFi();
+          // reconnectWiFi();
         }
       }
     }

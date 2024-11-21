@@ -75,8 +75,8 @@ class Utils
   static constexpr const float WIFI_RECONNECT_INTERVAL = 10.0;    // [s]  Interval to reconnect to WiFi
   static constexpr const float BUTTON_TIMER_RATE = 100.0;         // [Hz]  Timer rate for button press detection
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
-  static constexpr const int TIMEZONE_UPDATE_INTERVAL = 10;       // [s]  Interval to update the time zone offset
-  static constexpr const bool USE_IPAPI = true;                   // Use IPAPI to get the time zone offset
+  static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
+  static constexpr const bool USE_IPAPI = false;                   // Use IPAPI to get the time zone offset
 
   static WiFiManagerCustom wm;
 

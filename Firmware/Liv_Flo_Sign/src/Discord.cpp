@@ -32,19 +32,35 @@
 
 #include "Discord.h"
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <esp_system.h>
-#include "ArduinoJson.h"
 #include "console.h"
 #include "device.h"
 #include "secrets.h"
 #include "utils.h"
+
+// #include <static_malloc.h>
+
+// constexpr size_t myHeapSize = 1024 * 16;
+// static uint8_t myHeap[myHeapSize];
+
+
+// struct CutsomAllocator : ArduinoJson::Allocator
+// {
+//  public:
+//   void* allocate(size_t size) { return sm_malloc(size); }
+//   void deallocate(void* pointer) { sm_free(pointer); }
+//   void* reallocate(void* pointer, size_t new_size) { return sm_realloc(pointer, new_size); }
+// };
+
+// CutsomAllocator allocator;
 
 
 Discord::Discord() {}
 
 bool Discord::begin()
 {
+  // sm_set_default_pool(myHeap, myHeapSize, 0, nullptr);
+
   Device::getDeviceSerial(myName);
   console.log.printf("[DISCORD] ESP32 Serial Number: %s\n", myName);
   myDeviceIndex = Device::getDeviceIndex();
@@ -70,7 +86,7 @@ bool Discord::begin()
   apiUrl = unscrambleKey(DISCORD_API_URL, sizeof(DISCORD_API_URL) - 1);
   apiToken = unscrambleKey(DISCORD_BOT_TOKEN, sizeof(DISCORD_BOT_TOKEN) - 1);
 
-  xTaskCreate(updateTask, "discord", 8096, this, 5, NULL);
+  xTaskCreate(updateTask, "discord", 8192, this, 5, NULL);    // Stack Watermark: 3560
   console.ok.println("[DISCORD] Started");
   return true;
 }
@@ -83,14 +99,17 @@ void Discord::sendEvent(const char* event)
 
 bool Discord::checkForMessages()
 {
-  WiFiClientSecure client;
-  client.setInsecure();    // Using insecure connection for testing
-
   String lastMessageId = "";
   bool foundMessage = false;
   bool foundEvent = false;
   bool firstRun = true;
   int chuckCount = 0;
+
+  client.setTimeout(10000);
+  client.setBufferSizes(8192 /* rx */, 512 /* tx */);
+  client.setDebugLevel(1);    // none = 0, error = 1, warn = 2, info = 3, dump = 4
+  client.setClient(&base_client);
+  client.setInsecure();    // Using insecure connection for testing
 
   while(!foundMessage)
   {
@@ -105,78 +124,70 @@ bool Discord::checkForMessages()
       return false;
     }
 
-    String apiUrlWithLimit = apiUrl + "&limit=" + String(maxMessageCountPerRequest);
+    String url = String("https://") + discordHost + apiUrl + "&limit=" + String(MAX_MESSAGE_COUNT_PER_REQUEST);
     if(lastMessageId.length() > 0)    // If there's a last message ID, use it to fetch older messages
     {
-      apiUrlWithLimit += "&before=" + lastMessageId;
+      url += "&before=" + lastMessageId;
     }
-
-    if(outgoingEventFlag)    // Early exit before connection setup
+    if(!http.begin(client, url))
     {
-      console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
-      return false;
+      console.error.printf("[DISCORD] Server not available\n");
+      return false;    // Server not available
     }
-
-    if(!client.connect(discordHost, httpsPort))
+    http.addHeader("Authorization", "Bot " + apiToken, true);    // 'true' ensures overwriting default headers
+    http.addHeader("User-Agent", "ESP32");
+    http.addHeader("Connection", "keep-alive");
+    int httpCode = http.GET();
+    if(httpCode <= 0)
     {
-      console.error.println("[DISCORD] Connection to Discord failed!");
-      return false;
-    }
-
-    if(outgoingEventFlag)    // Early exit before sending request
-    {
-      console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+      console.error.printf("[DISCORD] HTTP GET failed! Error code: %d, reason: %s\n", httpCode, http.errorToString(httpCode).c_str());
+      http.end();
       client.stop();
       return false;
     }
-
-    client.print(String("GET ") + apiUrlWithLimit + " HTTP/1.1\r\n" + "Host: " + discordHost + "\r\n" + "Authorization: Bot " + apiToken + "\r\n" +
-                 "User-Agent: ESP32\r\n" + "Connection: close\r\n\r\n");
-
-    while(client.connected())    // Read the response header
+    if(httpCode < 200 || httpCode >= 300)
     {
-      if(outgoingEventFlag)    // Early exit during response header reading
+      if(httpCode == 429)
       {
-        console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
+        console.warning.printf("[DISCORD] Rate limited, waiting %.1f seconds.\n", SERVER_SLOW_DOWN_TIME);
+        delay(SERVER_SLOW_DOWN_TIME * 1000);
+        http.end();
         client.stop();
-        return false;
+        continue;
       }
-
-      String line = client.readStringUntil('\n');
-      if(line == "\r")
-      {
-        break;
-      }
+      console.warning.printf("[DISCORD] Unexpected HTTP response code: %d\n", httpCode);
+      http.end();
+      client.stop();
+      return false;
     }
-
-    String payload;
-    // payload.reserve(1024);
-    while(client.connected() || client.available())
-    {
-      if(outgoingEventFlag)    // Early exit during payload reading
-      {
-        console.warning.printf("[DISCORD] Abort message search, sending event: %s\n", eventMessageToSend.c_str());
-        client.stop();
-        return false;
-      }
-      payload += client.readString();
-    }
+    String payload = http.getString();
+    http.end();
+    client.stop();
 
     if(firstRun)    // Check if the latest discord payload is the same as the last one, if so we don't need to process the messages
     {
-      if(payload == latestDiscordPayload)
+      String payloadStart = payload.substring(0, 100);
+      if(payloadStart == latestDiscordPayload)
       {
-        client.stop();
         return false;
       }
-      latestDiscordPayload = payload;
+      latestDiscordPayload = payloadStart;
       firstRun = false;
     }
 
     // Trim to get valid JSON content
     int start = payload.indexOf('[');
-    payload = payload.substring(start);
+    if(start == -1)
+    {
+      console.error.println("[DISCORD] No messages available.");
+      break;
+    }
     int end = payload.lastIndexOf(']');
+    if(end == -1)
+    {
+      console.error.println("[DISCORD] No messages available.");
+      break;
+    }
     payload = payload.substring(0, end + 1);
 
     if(outgoingEventFlag)    // Early exit before JSON deserialization
@@ -185,18 +196,18 @@ bool Discord::checkForMessages()
       return false;
     }
 
-    static JsonDocument doc;
+    // static StaticJsonDocument<20000> doc;
+    DynamicJsonDocument doc(12000);
     DeserializationError error = deserializeJson(doc, payload);
     if(error)
     {
       console.error.printf("[DISCORD] Failed to parse JSON: %s\n", error.c_str());
-      client.stop();
+      Serial.println(payload);
       break;
     }
     if(doc.isNull() || doc.size() == 0)
     {
       console.error.println("[DISCORD] No messages available.");
-      client.stop();
       break;
     }
 
@@ -210,7 +221,6 @@ bool Discord::checkForMessages()
         discordEntry.remove(0, strlen(Device::devices[myDeviceIndex].receiveMessagesFrom) + 1);    // Remove the sender from the message
         if(discordEntry == latestMessage)    // If the message is the same as the last one, we don't need to process it
         {
-          client.stop();
           return false;
         }
         latestMessage = discordEntry;
@@ -218,7 +228,6 @@ bool Discord::checkForMessages()
         console[COLOR_MAGENTA].printf("[DISCORD] New Message received from [%s]: %s\n", sender.c_str(), latestMessage.c_str());
         console[COLOR_DEFAULT].print("");
         foundMessage = true;
-        client.stop();
         return true;
       }
       if(!foundEvent)    // While we are searching the latest message, we can also check for events
@@ -249,7 +258,6 @@ bool Discord::checkForMessages()
       }
       lastMessageId = doc[i]["id"].as<String>();    // Track the ID of the last message in this chunk for pagination
     }
-    client.stop();
     chuckCount++;
   }
   if(!foundMessage)
@@ -262,52 +270,64 @@ bool Discord::checkForMessages()
 
 bool Discord::checkForOutgoingEvents()
 {
-  if(eventMessageToSend.length() == 0)
+  if (eventMessageToSend.length() == 0)
   {
-    return false;
+    return false; // No event to send
   }
 
-  WiFiClientSecure client;
-  client.setInsecure();    // Using insecure connection for testing
-  if(!client.connect(discordHost, httpsPort))
+  client.setTimeout(10000);
+  client.setBufferSizes(8192 /* rx */, 1024 /* tx */);
+  client.setDebugLevel(1); // none = 0, error = 1, warn = 2, info = 3, dump = 4
+  client.setClient(&base_client);
+  client.setInsecure(); // Using insecure connection for testing
+  String url = String("https://") + discordHost + apiUrl; // Ensure `apiPath` points to the correct endpoint
+  if (!http.begin(client, url))
   {
-    console.error.println("[DISCORD] Connection to Discord failed!");
-    return false;
+    console.error.printf("[DISCORD] Failed to initialize connection to: %s\n", url.c_str());
+    return false; // Server not available
   }
+
+  // Prepare the event payload
   String eventString = String(myName) + "_" + String(Utils::getUnixTime()) + ":" + eventMessageToSend;
   String payload = "{\"content\":\"" + eventString + "\"}";
-  String apiUrlWithLimit = apiUrl + "&limit=" + String(maxMessageCountPerRequest);
 
-  client.print(String("POST ") + apiUrlWithLimit + " HTTP/1.1\r\n" + "Host: " + discordHost + "\r\n" + "Authorization: Bot " + apiToken + "\r\n" +
-               "User-Agent: ESP32\r\n" + "Content-Type: application/json\r\n" + "Content-Length: " + payload.length() + "\r\n" +
-               "Connection: close\r\n\r\n" + payload);
+  // Add headers
+  http.addHeader("Authorization", "Bot " + apiToken, true); // Ensure the token is sent
+  http.addHeader("User-Agent", "ESP32");
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Connection", "keep-alive");
 
-  while(client.connected())    // Read the response header
+  // Send the POST request
+  int httpCode = http.POST(payload);
+
+  if (httpCode <= 0)
   {
-    String line = client.readStringUntil('\n');
-    if(line == "\r")
-    {
-      break;
-    }
+    console.error.printf("[DISCORD] HTTP POST failed! Error code: %d, reason: %s\n", httpCode, http.errorToString(httpCode).c_str());
+    http.end();
+    client.stop();
+    return false;
   }
 
-  String response;
-  while(client.connected() || client.available())
+  if (httpCode < 200 || httpCode >= 300)
   {
-    response += client.readString();
+    console.warning.printf("[DISCORD] Unexpected HTTP response code: %d\n", httpCode);
+    http.end();
+    client.stop();
+    return false;
   }
-  // if(!response.startsWith("24d"))    // Not really sure
-  // {
-  //   console.error.printf("[DISCORD] Failed to send event: %s\n", response.c_str());
-  //   client.stop();
-  //   return false;
-  // }
+
+  // String response = http.getString();
+  // Clear the event message since it has been sent successfully
   console.ok.printf("[DISCORD] Event sent: %s\n", eventMessageToSend.c_str());
-  client.stop();
   eventMessageToSend = "";
   outgoingEventFlag = false;
-  return true;
+
+  http.end(); // Always end the HTTPClient session
+  client.stop();
+
+  return true; // Event sent successfully
 }
+
 
 
 void Discord::updateTask(void* param)

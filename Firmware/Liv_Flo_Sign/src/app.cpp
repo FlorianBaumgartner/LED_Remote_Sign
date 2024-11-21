@@ -36,13 +36,13 @@
 bool App::begin()
 {
   discord.begin();
-  githubOTA.begin(REPO_URL);
+  githubOTA.begin();
   sensor.begin();
   disp.begin();
   sign.begin();
 
-  xTaskCreate(appTask, "app_task", 4096, this, 17, NULL);
-  xTaskCreate(ledTask, "led_sign_task", 4096, this, 20, NULL);
+  xTaskCreate(appTask, "app_task", 4096, this, 17, NULL);         // Stack Watermark: 2476
+  xTaskCreate(ledTask, "led_sign_task", 4096, this, 20, NULL);    // Stack Watermark: 2492
   return true;
 }
 
@@ -104,6 +104,7 @@ void App::appTask(void* pvParameter)
         }
         else if(app->showIpAddressTimer.expired())    // Show IP address instead of message while timer is running
         {
+          app->discord.enable(true);
           app->disp.setState(DisplayMatrix::IDLE);
           app->disp.setMessage(app->discord.getLatestMessage());
           app->sign.enable(true);

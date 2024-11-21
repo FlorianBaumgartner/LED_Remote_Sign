@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.py": "python",
         "array": "cpp",
         "deque": "cpp",
         "string": "cpp",
@@ -12,6 +13,9 @@
         "random": "cpp",
         "sdkconfig.h": "c",
         "tusb_option.h": "c",
-        "wiring_private.h": "c"
+        "wiring_private.h": "c",
+        "inner.h": "c",
+        "bearssl.h": "c",
+        "config.h": "c"
     }
 }

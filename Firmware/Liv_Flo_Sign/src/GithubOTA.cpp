@@ -31,8 +31,8 @@
  ******************************************************************************/
 
 #include "GithubOTA.h"
-#include <HTTPClient.h>
-#include <HTTPUpdate.h>
+#include "HTTPUpdate.h"
+#include "console.h"
 #include "utils.h"
 
 bool GithubOTA::_serverAvailable = false;
@@ -41,16 +41,19 @@ bool GithubOTA::_startUpdate = false;
 bool GithubOTA::_updateStarted = false;
 bool GithubOTA::_updateAborted = false;
 bool GithubOTA::_updateInProgress = false;
+char GithubOTA::firmwareUrl[256];
 uint16_t GithubOTA::_progress = 0;
+HTTPClient GithubOTA::http;
+WiFiClient GithubOTA::base_client;
+ESP_SSLClient GithubOTA::client;
 
 GithubOTA::GithubOTA() {}
 
-void GithubOTA::begin(const char* repo, const char* currentFwVersion)
+void GithubOTA::begin(const char* currentFwVersion)
 {
-  _repo = repo;
   _currentFwVersion = decodeFirmwareString(currentFwVersion);
 
-  xTaskCreate(updateTask, "github", 8096, this, 5, NULL);
+  xTaskCreate(updateTask, "github", 8192, this, 5, NULL);
   console.log.println("[GITHUB_OTA] Started");
   console.log.printf("[GITHUB_OTA] Booting %s\n", _currentFwVersion.toString().c_str());
 }
@@ -92,11 +95,13 @@ bool GithubOTA::checkForUpdates()
     return false;
   }
 
-  HTTPClient http;
-  WiFiClientSecure client;
-  client.setInsecure();
+  client.setTimeout(10000);
+  client.setBufferSizes(8192 /* rx */, 512 /* tx */);
+  client.setDebugLevel(1);    // none = 0, error = 1, warn = 2, info = 3, dump = 4
+  client.setClient(&base_client);
+  client.setInsecure();    // Using insecure connection for testing
 
-  firmwareUrl = String("https://github.com/") + _repo + String("/releases/latest/download/firmware.bin") + "?t=" + String(millis());
+  snprintf(firmwareUrl, sizeof(firmwareUrl), "https://github.com/" REPO_URL "/releases/latest/download/firmware.bin?t=%lu", millis());
   if(!http.begin(client, firmwareUrl))
   {
     console.error.printf("[GITHUB_OTA] Server not available\n");
@@ -105,13 +110,17 @@ bool GithubOTA::checkForUpdates()
     _startUpdate = false;
     return false;    // Server not available
   }
+  http.useHTTP10(false);
+  http.setReuse(true);
 
   http.addHeader("Cache-Control", "no-cache");    // no cache
+  http.addHeader("Connection", "keep-alive");     // Ensure persistent connection
   int httpCode = http.sendRequest("HEAD");
-  if(httpCode < 300 || httpCode > 400)
+  if(httpCode < 200 || httpCode > 302)
   {
-    // console.warning.printf("[GITHUB_OTA] Error code: %d\n", httpCode);
+    console.warning.printf("[GITHUB_OTA] Error code: %d\n", httpCode);
     http.end();
+    client.stop();
     _serverAvailable = false;
     _updateAvailable = false;
     _startUpdate = false;
@@ -119,10 +128,12 @@ bool GithubOTA::checkForUpdates()
   }
   _serverAvailable = true;
 
-  int start = http.getLocation().indexOf("download/v") + 10;
-  String onlineFirmware = http.getLocation().substring(start, http.getLocation().indexOf("/", start));
+  String location = http.getLocation();
+  int start = location.indexOf("download/v") + 10;
+  String onlineFirmware = location.substring(start, location.indexOf("/", start));
   _latestFwVersion = decodeFirmwareString(onlineFirmware.c_str());
   _updateAvailable = compareFirmware(_latestFwVersion, _currentFwVersion) > 0;    // Check if update is available
+  // console.log.printf("[GITHUB_OTA] Online: %s, Current: %s, Update: %s\n", _latestFwVersion.toString().c_str(), _currentFwVersion.toString().c_str(), _updateAvailable ? "Yes" : "No");
 
   if(_startUpdate && _updateAvailable)
   {
@@ -139,12 +150,7 @@ bool GithubOTA::checkForUpdates()
       _updateInProgress = true;
       console.log.printf("[GITHUB_OTA] Update Start\n");
     });
-    httpUpdate.onEnd([]() {
-      // Just keep the update status for now as we will restart the device
-      // _updateInProgress = false;
-      // _updateAvailable = false;
-      console.log.printf("[GITHUB_OTA] Update End\n");
-    });
+    httpUpdate.onEnd([]() { console.log.printf("[GITHUB_OTA] Update End\n"); });
     httpUpdate.onError([](int error) {
       console.error.printf("[GITHUB_OTA] Update Error: %d\n", error);
       _updateAborted = true;
@@ -155,22 +161,30 @@ bool GithubOTA::checkForUpdates()
       console.log.printf("[GITHUB_OTA] Update Progress: %d%%\n", (current * 100) / total);
     });
 
-    t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
+    t_httpUpdate_return ret = httpUpdate.update(http);
     switch(ret)
     {
       case HTTP_UPDATE_FAILED:
         console.error.printf("[GITHUB_OTA] HTTP Update Failed (Error=%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+        http.end();
+        client.stop();
         return false;
 
       case HTTP_UPDATE_NO_UPDATES:
         console.warning.printf("[GITHUB_OTA] No Update!\n");
+        http.end();
+        client.stop();
         return false;
 
       case HTTP_UPDATE_OK:
         console.ok.printf("[GITHUB_OTA] Update OK!\n");
+        http.end();
+        client.stop();
         return true;
     }
   }
+  http.end();
+  client.stop();
   return true;
 }
 

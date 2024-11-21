@@ -49,18 +49,24 @@
 #define LED_MATRIX_W   40
 
 
-Utils utils(BTN_PIN);
-Sensor sensor;
-Discord discord;
-GithubOTA githubOTA;
-DisplayMatrix disp(LED_MATRIX_PIN, LED_MATRIX_H, LED_MATRIX_W);
-DisplaySign sign(LED_SIGNAL_PIN, LED_SIGN_COUNT);
-App app(utils, sensor, discord, githubOTA, disp, sign);
+static Utils utils(BTN_PIN);
+static Sensor sensor;
+static Discord discord;
+static GithubOTA githubOTA;
+static DisplayMatrix disp(LED_MATRIX_PIN, LED_MATRIX_H, LED_MATRIX_W);
+static DisplaySign sign(LED_SIGNAL_PIN, LED_SIGN_COUNT);
+static App app(utils, sensor, discord, githubOTA, disp, sign);
+
 
 
 void setup()
 {
   console.begin();
+
+  // mbedtls_ssl_conf_session_cache
+  
+  // mbedtls_platform_set_calloc_free(sm_calloc, sm_free);
+
   app.begin();
   utils.begin();
 }

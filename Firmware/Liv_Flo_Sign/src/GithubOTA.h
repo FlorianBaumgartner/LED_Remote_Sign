@@ -34,6 +34,10 @@
 #define GITHUBOTA_H
 
 #include <Arduino.h>
+#include <ESP_SSLClient.h>
+#include <HTTPClient.h>
+
+#define REPO_NAME
 
 #define FIRMWARE_UPDATE_INTERVAL 10    // [s]  Interval to check for updates
 
@@ -50,7 +54,7 @@ class GithubOTA
 {
  public:
   GithubOTA();
-  void begin(const char* repo, const char* currentFwVersion = FIRMWARE_VERSION);
+  void begin(const char* currentFwVersion = FIRMWARE_VERSION);
   bool isServerAvailable() { return _serverAvailable; }
   bool updateAvailable() { return _updateAvailable && !_updateInProgress; }
   void startUpdate() { _startUpdate = _updateStarted = true; }
@@ -62,8 +66,7 @@ class GithubOTA
   Firmware getLatestFirmwareVersion() { return _latestFwVersion; }
 
  private:
-  const char* _repo;
-  String firmwareUrl;
+  static char firmwareUrl[256];
   Firmware _latestFwVersion;
   Firmware _currentFwVersion;
   static bool _serverAvailable;
@@ -73,6 +76,10 @@ class GithubOTA
   static bool _updateAborted;
   static bool _updateInProgress;
   static uint16_t _progress;
+
+  static HTTPClient http;
+  static WiFiClient base_client;
+  static ESP_SSLClient client;
 
   Firmware decodeFirmwareString(const char* version);
   int compareFirmware(Firmware a, Firmware b);    // Returns 1 if a > b, -1 if a < b, 0 if a == b

@@ -51,7 +51,7 @@ bool Sensor::begin(void)
   vcnl4020.setAmbientAveraging(AVG_8_SAMPLES);
   vcnl4020.enable(true, true, true);
 
-  xTaskCreate(updateTask, "sensor", 4096, this, 17, NULL);
+  xTaskCreate(updateTask, "sensor", 1024, this, 17, NULL);    // Stack Watermark: 88
   return true;
 }
 
