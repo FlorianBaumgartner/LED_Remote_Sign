@@ -225,7 +225,9 @@ void DisplayMatrix::setUpdatePercentage(int percentage)
   if(percentage < 0)
   {
     resetScrollPosition = true;
-    scrollMessage("Update", 0xFFFF00);
+    matrix.clear();
+    matrix.show();
+    delay(100);
   }
 }
 
