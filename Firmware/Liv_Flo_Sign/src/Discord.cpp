@@ -105,7 +105,7 @@ bool Discord::checkForMessages()
   bool firstRun = true;
   int chuckCount = 0;
 
-  client.setTimeout(10000);
+  client.setTimeout(5000);
   client.setBufferSizes(8192 /* rx */, 512 /* tx */);
   client.setDebugLevel(1);    // none = 0, error = 1, warn = 2, info = 3, dump = 4
   client.setClient(&base_client);
@@ -275,7 +275,7 @@ bool Discord::checkForOutgoingEvents()
     return false; // No event to send
   }
 
-  client.setTimeout(10000);
+  client.setTimeout(5000);
   client.setBufferSizes(8192 /* rx */, 1024 /* tx */);
   client.setDebugLevel(1); // none = 0, error = 1, warn = 2, info = 3, dump = 4
   client.setClient(&base_client);
@@ -336,7 +336,7 @@ void Discord::updateTask(void* param)
   while(true)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
-    if(WiFi.status() == WL_CONNECTED && ref->enabled)
+    if(Utils::getConnectionState() && ref->enabled)
     {
       ref->checkForOutgoingEvents();    // Check if there are events to send
       ref->checkForMessages();          // Check is server is available and if an update is available

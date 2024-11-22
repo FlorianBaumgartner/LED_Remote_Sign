@@ -111,7 +111,7 @@ bool Utils::begin(void)
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
   connectionState = false;
-  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);   // Stack Watermark: 4672
+  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);    // Stack Watermark: 4672
 
   Timer0_Cfg = timerBegin(0, 80, true);
   timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
@@ -150,7 +150,7 @@ bool Utils::reconnectWiFi(int retries, bool verbose)
   }
   if(wm.autoConnect(Device::getDeviceName().c_str()))
   {
-    console.ok.printf("[UTILS] Connected to %s\n", wm.getWiFiSSID().c_str());
+    console.ok.printf("[UTILS] Connected to %s, IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
     wm.startConfigPortal(Device::getDeviceName().c_str());
     return true;
   }
@@ -186,7 +186,7 @@ uint32_t Utils::getUnixTime()
 bool Utils::getCurrentTime(struct tm& timeinfo)
 {
   // Check if we are connected to the internet
-  if(WiFi.status() != WL_CONNECTED)
+  if(!getConnectionState())
   {
     return false;
   }
@@ -299,12 +299,15 @@ void Utils::updateTask(void* pvParameter)
     {
       t = millis();
 
+      static bool forceWiFiOff = false;
+      static int tConnected = -1;
       connectionStateOld = connectionState;
-      connectionState = WiFi.status() == WL_CONNECTED;
+      connectionState = WiFi.isConnected() && !forceWiFiOff;
       if((!connectionStateOld && connectionState) || (!timezoneValid && !wm.getConfigPortalActive()))    // Retry getting time zone info
       {
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;
+        tConnected = millis();
 
         static wifi_country_t myCountry;
         if(esp_wifi_get_country(&myCountry) == ESP_OK)
@@ -333,13 +336,32 @@ void Utils::updateTask(void* pvParameter)
       {
         console.warning.println("[UTILS] Disconnected from WiFi");
       }
-      if(!connectionState)
+
+      if(WiFi.localIP() == IPAddress(0, 0, 0, 0))    // Check if the IP was set to 0.0.0.0 (disconnected)
+      {
+        if((millis() - tConnected > 2000) && !forceWiFiOff)
+        {
+          console.warning.println("[UTILS] WiFi connected but IP is 0.0.0.0, disconnecting");
+          connectionState = false;
+          forceWiFiOff = true;
+          // wm.disconnect();
+          WiFi.disconnect();
+          WiFi._setStatus(WL_DISCONNECTED);     // Force the status to disconnected
+        }
+      }
+      else
+      {
+        forceWiFiOff = false;
+      }
+
+      if(!connectionState)    // WHile connected, check if the IP was set to 0.0.0.0 (disconnected)
       {
         static int t = 0;
         if(millis() - t > WIFI_RECONNECT_INTERVAL * 1000)
         {
           t = millis();
-          // reconnectWiFi();
+          tConnected = t;    // Reset the timer, to enable a new connection
+          reconnectWiFi();
         }
       }
     }

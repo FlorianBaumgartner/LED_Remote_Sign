@@ -88,7 +88,7 @@ int GithubOTA::compareFirmware(Firmware a, Firmware b)
 
 bool GithubOTA::checkForUpdates()
 {
-  if(WiFi.status() != WL_CONNECTED)
+  if(!Utils::getConnectionState())
   {
     _serverAvailable = false;
     _updateAvailable = false;
@@ -96,7 +96,7 @@ bool GithubOTA::checkForUpdates()
     return false;
   }
 
-  client.setTimeout(10000);
+  client.setTimeout(5000);
   client.setBufferSizes(1024 /* rx */, 1024 /* tx */);
   client.setDebugLevel(1);    // none = 0, error = 1, warn = 2, info = 3, dump = 4
   client.setClient(&base_client);
