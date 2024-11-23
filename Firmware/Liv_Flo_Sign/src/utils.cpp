@@ -23,37 +23,61 @@ const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   
 
 WiFiManagerParameter Utils::time_interval_slider(
   "time_interval",    // ID for the slider
-  "<link href='https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css' rel='stylesheet'>"
   "<style>"
-  "#slider { margin-top: 10px; }"
-  "#slider .noUi-handle { background-color: #0073e6; border-radius: 50%; height: 16px; width: 16px; top: -5px; }"
-  "#slider .noUi-connect { background: #0073e6; }"
-  ".noUi-target, .noUi-base, .noUi-connects { background: transparent; border: none; }"
-  ".noUi-horizontal .noUi-handle:before, .noUi-horizontal .noUi-handle:after, .noUi-tooltip { display: none; }"
+  ".double-range { width: 100%; max-width: 500px; margin: 10px auto; font-family: Arial, sans-serif; color: #FFFFFF; }"
+  ".range-slider { position: relative; width: calc(100% - 20px); margin: 0 auto; height: 10px; background-color: #e1e9f6; border-radius: 5px; "
+  "overflow: hidden; box-sizing: border-box; padding: 0 10px; }"
+  ".range-fill { position: absolute; height: 100%; background-color: #007bff; border-radius: 5px; }"
+  ".range-input { position: relative; width: 100%; height: 10px; margin-top: -10px; }"
+  ".range-input input { position: absolute; width: 100%; height: 10px; margin: 0; top: 0; pointer-events: none; -webkit-appearance: none; "
+  "background: none; }"
+  ".range-input input::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background-color: #007bff; border: 4px solid #80bfff; "
+  "pointer-events: auto; -webkit-appearance: none; cursor: pointer; }"
+  ".range-input input::-moz-range-thumb { height: 20px; width: 20px; border-radius: 50%; background-color: #007bff; border: 4px solid #80bfff; "
+  "pointer-events: auto; cursor: pointer; }"
+  ".time-display { display: flex; justify-content: space-between; margin-top: 5px; font-size: 14px; }"
   "</style>"
-  "<div style='color: #FFFFFF; font-family: Arial, sans-serif; font-size: 14px;'>Select Time Interval</div>"
-  "<div id='slider'></div>"
-  "<div style='display: flex; justify-content: space-between; color: #FFFFFF; font-family: Arial, sans-serif;'>"
-  "<span id='startTime'>00:00</span><span id='endTime'>23:59</span></div>"
-  "<script src='https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js'></script>"
+  "<div class='double-range'>"
+  "<h2 style='color: #FFFFFF; margin-bottom: 5px;'>Select Time Interval</h2>"
+  "<div class='range-slider'>"
+  "<span class='range-fill'></span>"
+  "</div>"
+  "<div class='range-input'>"
+  "<input type='range' class='min' min='0' max='1425' value='0' step='15'>"
+  "<input type='range' class='max' min='0' max='1425' value='120' step='15'>"
+  "</div>"
+  "<div class='time-display'>"
+  "<span id='startTime'>00:00</span><span id='endTime'>02:00</span>"
+  "</div>"
   "<script>"
-  "const slider = document.getElementById('slider');"
-  "noUiSlider.create(slider, {"
-  "  start: [0, 95], connect: true, range: { 'min': 0, 'max': 95 }, step: 1,"
-  "  format: {"
-  "    to: v => {"
-  "      const h = Math.floor(v / 4).toString().padStart(2, '0');"
-  "      const m = ((v % 4) * 15).toString().padStart(2, '0');"
-  "      return `${h}:${m}`;"
-  "    },"
-  "    from: Number }"
-  "});"
+  "const rangeFill = document.querySelector('.range-fill');"
+  "const rangeInputs = document.querySelectorAll('.range-input input');"
   "const startTime = document.getElementById('startTime');"
   "const endTime = document.getElementById('endTime');"
-  "slider.noUiSlider.on('update', v => { startTime.textContent = v[0]; endTime.textContent = v[1]; });"
-  "slider.noUiSlider.on('change', v => { document.getElementById('time_interval').value = `${v[0]}-${v[1]}`; });"
+  "function updateSlider() {"
+  "  const min = parseInt(rangeInputs[0].value);"
+  "  const max = parseInt(rangeInputs[1].value);"
+  "  if (min >= max) rangeInputs[0].value = max - 15;"
+  "  if (max <= min) rangeInputs[1].value = min + 15;"
+  "  const minValue = parseInt(rangeInputs[0].value);"
+  "  const maxValue = parseInt(rangeInputs[1].value);"
+  "  const minPercent = (minValue / 1425) * 100;"
+  "  const maxPercent = (maxValue / 1425) * 100;"
+  "  rangeFill.style.left = `${minPercent}%`;"
+  "  rangeFill.style.right = `${100 - maxPercent}%`;"
+  "  startTime.textContent = formatTime(minValue);"
+  "  endTime.textContent = formatTime(maxValue);"
+  "  document.getElementById('time_interval').value = `${formatTime(minValue)}-${formatTime(maxValue)}`;"
+  "}"
+  "function formatTime(value) {"
+  "  const hours = Math.floor(value / 60).toString().padStart(2, '0');"
+  "  const minutes = (value % 60).toString().padStart(2, '0');"
+  "  return `${hours}:${minutes}`;"
+  "}"
+  "rangeInputs.forEach(input => input.addEventListener('input', updateSlider));"
+  "updateSlider();"
   "</script>",
-  "00:00-23:59",    // Default value
+  "00:00-02:00",    // Default value
   16                // Length of value storage
 );
 
@@ -344,9 +368,9 @@ void Utils::updateTask(void* pvParameter)
           console.warning.println("[UTILS] WiFi connected but IP is 0.0.0.0, disconnecting");
           connectionState = false;
           forceWiFiOff = true;
-          // wm.disconnect();
+          wm.disconnect();
           WiFi.disconnect();
-          WiFi._setStatus(WL_DISCONNECTED);     // Force the status to disconnected
+          WiFi._setStatus(WL_DISCONNECTED);    // Force the status to disconnected
         }
       }
       else

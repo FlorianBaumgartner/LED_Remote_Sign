@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Interval Slider</title>
+    <title>Setup</title>
     <style>
         .double-range {
             width: 100%;
@@ -31,7 +31,6 @@
             background-color: #007bff;
             border-radius: 5px;
         }
-
 
         .range-input {
             position: relative;
@@ -89,19 +88,30 @@
     </style>
 </head>
 
-<body>
-    <div class="double-range">
-        <h2>Time Interval</h2>
-        <div class="range-slider">
-            <span class="range-fill"></span>
-        </div>
-        <div class="range-input">
-            <input type="range" class="min" min="0" max="1425" value="0" step="15">
-            <input type="range" class="max" min="0" max="1425" value="120" step="15">
-        </div>
-        <div class="text-input">
-            <input type="text" name="min" value="00:00" readonly>
-            <input type="text" name="max" value="02:00" readonly>
+<body class="invert">
+    <div class="wrap">
+        <form method="POST" action="http://10.0.0.213/paramsave">
+            <div class="double-range">
+                <h2>Select Time Interval</h2>
+                <div class="range-slider">
+                    <span class="range-fill"></span>
+                </div>
+                <div class="range-input">
+                    <input type="range" class="min" min="0" max="1425" value="0" step="15">
+                    <input type="range" class="max" min="0" max="1425" value="120" step="15">
+                </div>
+                <div class="text-input">
+                    <input type="text" name="min" value="00:00" readonly>
+                    <input type="text" name="max" value="02:00" readonly>
+                </div>
+            </div>
+            <input id="time_interval" name="time_interval" maxlength="16" value="00:00-02:00">
+            <br><br>
+            <button type="submit">Save</button>
+        </form>
+        <div class="msg S">
+            <strong>Connected</strong> to 1102Foster<br>
+            <em><small>with IP 10.0.0.213</small></em>
         </div>
     </div>
 
@@ -109,12 +119,12 @@
         const rangeFill = document.querySelector(".range-fill");
         const rangeInputs = document.querySelectorAll(".range-input input");
         const textInputs = document.querySelectorAll(".text-input input");
+        const timeInterval = document.getElementById("time_interval");
 
         function updateSlider() {
             const min = parseInt(rangeInputs[0].value);
             const max = parseInt(rangeInputs[1].value);
 
-            // Prevent overlap
             if (min >= max) {
                 rangeInputs[0].value = max - 15;
             }
@@ -125,17 +135,16 @@
             const minValue = parseInt(rangeInputs[0].value);
             const maxValue = parseInt(rangeInputs[1].value);
 
-            // Calculate fill positions
             const minPercent = (minValue / 1425) * 100;
             const maxPercent = (maxValue / 1425) * 100;
 
-            // Update fill position
             rangeFill.style.left = `${minPercent}%`;
             rangeFill.style.right = `${100 - maxPercent}%`;
 
-            // Update text inputs
             textInputs[0].value = formatTime(minValue);
             textInputs[1].value = formatTime(maxValue);
+
+            timeInterval.value = `${formatTime(minValue)}-${formatTime(maxValue)}`;
         }
 
         function formatTime(value) {
@@ -148,7 +157,6 @@
             input.addEventListener("input", updateSlider);
         });
 
-        // Initialize slider positions
         updateSlider();
     </script>
 </body>
