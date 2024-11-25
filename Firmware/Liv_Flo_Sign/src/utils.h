@@ -34,8 +34,9 @@
 #define UTILS_H
 
 #include <Arduino.h>
-#include <WiFiManager.h>
+#include <CustomWiFiManager.h>
 #include <esp_task_wdt.h>
+#include <vector>
 
 
 class Timer
@@ -49,17 +50,6 @@ class Timer
   uint32_t time = 0;
 };
 
-class WiFiManagerCustom : public WiFiManager
-{
- public:
-  WiFiManagerCustom() : WiFiManager() {}
-  WiFiManagerCustom(Print& consolePort) : WiFiManager(consolePort) {}
-  void setConfigPortalSSID(String apName) { _apName = apName; }
-
- protected:
-  bool _allowExit = false;    // Allow the user to exit the configuration portal
-};
-
 
 class Utils
 {
@@ -68,15 +58,15 @@ class Utils
   {
     Switzerland = 0,
     USA = 1,
-    Unknown = 2
+    France = 2,
+    Unknown = -1
   };
 
   static constexpr const float UTILS_UPDATE_RATE = 2.0;           // [Hz]  Interval to check for internet connection and time update
-  static constexpr const float WIFI_RECONNECT_INTERVAL = 10.0;    // [s]  Interval to reconnect to WiFi
+  static constexpr const float WIFI_RECONNECT_INTERVAL = 60.0;    // [s]  Interval to reconnect to WiFi
   static constexpr const float BUTTON_TIMER_RATE = 100.0;         // [Hz]  Timer rate for button press detection
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
   static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
-  static constexpr const bool USE_IPAPI = false;                   // Use IPAPI to get the time zone offset
 
   static WiFiManagerCustom wm;
 
@@ -111,6 +101,7 @@ class Utils
   static int32_t raw_offset;
   static int32_t dst_offset;
   static bool timezoneValid;
+  static bool tryReconnect;
 
   static bool connectionState;
   static int buttonPin;
@@ -119,10 +110,11 @@ class Utils
   static bool shortPressEvent;
   static bool longPressEvent;
 
-  static WiFiManagerParameter time_interval_slider;
+  static CustomWiFiManagerParameter time_interval_slider;
 
   static bool getOffsetFromWorldTimeAPI();
   static bool getOffsetFromIpapi();
+  static std::vector<IPAddress> getConnectedClientIPs(int maxCount = -1);
 
   static void saveParamsCallback();
   static bool reconnectWiFi(int retries = 1, bool verbose = false);

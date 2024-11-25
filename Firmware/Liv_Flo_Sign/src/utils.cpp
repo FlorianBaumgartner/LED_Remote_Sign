@@ -1,5 +1,6 @@
 #include "utils.h"
 #include <ArduinoJson.h>
+#include <ESP32Ping.h>
 #include <WiFi.h>
 #include <time.h>
 #include "HTTPClient.h"
@@ -17,12 +18,14 @@ bool Utils::connectionState = false;
 bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
 bool Utils::timezoneValid = false;
+bool Utils::tryReconnect = false;
+
 
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
 
-WiFiManagerParameter Utils::time_interval_slider(
-  "time_interval",    // ID for the slider
+CustomWiFiManagerParameter Utils::time_interval_slider(
+  // "time_interval", // ID
   "<style>"
   ".double-range { width: 100%; max-width: 500px; margin: 10px auto; font-family: Arial, sans-serif; color: #FFFFFF; }"
   ".range-slider { position: relative; width: calc(100% - 20px); margin: 0 auto; height: 10px; background-color: #e1e9f6; border-radius: 5px; "
@@ -43,17 +46,19 @@ WiFiManagerParameter Utils::time_interval_slider(
   "<span class='range-fill'></span>"
   "</div>"
   "<div class='range-input'>"
-  "<input type='range' class='min' min='0' max='1425' value='0' step='15'>"
-  "<input type='range' class='max' min='0' max='1425' value='120' step='15'>"
+  "<input type='range' class='min' min='0' max='1425' value='495' step='15'>"
+  "<input type='range' class='max' min='0' max='1425' value='1110' step='15'>"
   "</div>"
   "<div class='time-display'>"
-  "<span id='startTime'>00:00</span><span id='endTime'>02:00</span>"
+  "<span id='startTime'>08:15</span><span id='endTime'>18:30</span>"
   "</div>"
+  "<input type='hidden' id='time_interval' name='time_interval' value='08:15-18:30'>"
   "<script>"
   "const rangeFill = document.querySelector('.range-fill');"
   "const rangeInputs = document.querySelectorAll('.range-input input');"
   "const startTime = document.getElementById('startTime');"
   "const endTime = document.getElementById('endTime');"
+  "const hiddenInput = document.getElementById('time_interval');"
   "function updateSlider() {"
   "  const min = parseInt(rangeInputs[0].value);"
   "  const max = parseInt(rangeInputs[1].value);"
@@ -67,7 +72,7 @@ WiFiManagerParameter Utils::time_interval_slider(
   "  rangeFill.style.right = `${100 - maxPercent}%`;"
   "  startTime.textContent = formatTime(minValue);"
   "  endTime.textContent = formatTime(maxValue);"
-  "  document.getElementById('time_interval').value = `${formatTime(minValue)}-${formatTime(maxValue)}`;"
+  "  hiddenInput.value = `${formatTime(minValue)}-${formatTime(maxValue)}`;"
   "}"
   "function formatTime(value) {"
   "  const hours = Math.floor(value / 60).toString().padStart(2, '0');"
@@ -76,10 +81,15 @@ WiFiManagerParameter Utils::time_interval_slider(
   "}"
   "rangeInputs.forEach(input => input.addEventListener('input', updateSlider));"
   "updateSlider();"
-  "</script>",
-  "00:00-02:00",    // Default value
-  16                // Length of value storage
-);
+  "</script>");
+
+
+const char* customSwitch = R"rawliteral(
+<div>
+  <label for="customSwitch">Custom Switch:</label>
+  <input type="checkbox" id="customSwitch" name="customSwitch" value="1" checked>
+</div>
+)rawliteral";
 
 
 const char* colorPickerHTML =
@@ -95,6 +105,9 @@ const char* colorPickerHTML =
   "<input type='submit' value='Set Color'>"
   "</form>"
   "</body></html>";
+
+
+WiFiManagerParameter switchParam(customSwitch);
 
 
 bool Utils::begin(void)
@@ -129,9 +142,15 @@ bool Utils::begin(void)
   wm.setCustomHeadElement(headhtml);
   wm.setMenu(menuItems);
   wm.setDarkMode(true);
+  wm.setDebugOutput(true, WM_DEBUG_ERROR);    // For Debugging us: WM_DEBUG_VERBOSE
   wm.setConfigPortalSSID(Device::getDeviceName());
   wm.startWebPortal();
+
+  // time_interval_slider.setValue("00:00-02:00", 16);    // Allocate enough space for the value
   wm.addParameter(&time_interval_slider);
+
+
+  wm.addParameter(&switchParam);
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
   connectionState = false;
@@ -146,43 +165,79 @@ bool Utils::begin(void)
 
 void Utils::saveParamsCallback()
 {
-  console.log.printf("[UTILS] Saving parameters\n");
+  Serial.println("[UTILS] Saving parameters");
 
-  // Access the list of parameters safely
+  // Retrieve parameters from WiFiManager
   WiFiManagerParameter** params = wm.getParameters();
   int numParams = wm.getParametersCount();
-  console.log.printf("[UTILS] Parameter count: %d\n", numParams);
+  Serial.printf("[UTILS] Parameter count: %d\n", numParams);
 
-  // Retrieve and print time interval parameter
+  for(int i = 0; i < numParams; i++)
+  {
+    if(params[i] != nullptr && params[i]->getID() != nullptr)
+    {
+      Serial.printf("[UTILS] Parameter ID: %s, Value: %s\n", params[i]->getID(), params[i]->getValue());
+    }
+    else
+    {
+      Serial.printf("[UTILS] Parameter at index %d is null or uninitialized\n", i);
+    }
+  }
+
+  // Specifically check for the time_interval parameter
   if(time_interval_slider.getValue() != nullptr)
   {
-    console.log.printf("[UTILS] Time Interval: %s\n", time_interval_slider.getValue());
+    Serial.printf("[UTILS] Time Interval: %s\n", time_interval_slider.getValue());
   }
   else
   {
-    console.log.printf("[UTILS] Time Interval parameter is null or uninitialized\n");
+    Serial.println("[UTILS] Time Interval parameter is null or uninitialized");
   }
 }
 
+
 bool Utils::reconnectWiFi(int retries, bool verbose)
 {
-  wm.setConnectRetries(retries);
   if(WiFi.softAPgetStationNum() > 0)    // Abort if someone has already connected to the device (AP)
   {
-    console.warning.println("[UTILS] Aborting reconnect: Client connected to config portal.");
-    return false;
+    std::vector<IPAddress> clientIPs = getConnectedClientIPs(5);
+    for(IPAddress ip : clientIPs)
+    {
+      const int retryCount = 10;
+      for(int i = 0; i < retryCount; i++)
+      {
+        if(Ping.ping(ip))
+        {
+          console.warning.printf("[UTILS] Aborting reconnect: Client connected to portal: %s\n", ip.toString().c_str());
+          return false;
+        }
+        console.warning.printf("[UTILS] Failed to ping client: %s, retrying...\n", ip.toString().c_str());
+        delay(500);
+      }
+    }
   }
+  bool res = false;
+  wm.setConnectRetries(retries);
+  wm.setWiFiAutoReconnect(false);    // We handle the reconnection ourselves
   if(wm.autoConnect(Device::getDeviceName().c_str()))
   {
     console.ok.printf("[UTILS] Connected to %s, IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
-    wm.startConfigPortal(Device::getDeviceName().c_str());
-    return true;
+    if(!wm.getConfigPortalActive())
+    {
+      wm.startConfigPortal(Device::getDeviceName().c_str());
+      console.log.println("[UTILS] Configportal started");
+    }
+    else if(verbose)
+    {
+      console.warning.println("[UTILS] Configportal already running");
+    }
+    res = true;
   }
-  if(verbose)
+  else if(verbose)
   {
-    console.warning.println(String("[UTILS] Configportal running: ") + Device::getDeviceName());
+    console.warning.println("[UTILS] Failed to connect to WiFi");
   }
-  return false;
+  return res;
 }
 
 
@@ -209,8 +264,7 @@ uint32_t Utils::getUnixTime()
 
 bool Utils::getCurrentTime(struct tm& timeinfo)
 {
-  // Check if we are connected to the internet
-  if(!getConnectionState())
+  if(!getConnectionState())    // Check if we are connected to the internet
   {
     return false;
   }
@@ -226,7 +280,16 @@ bool Utils::updateTimeZoneOffset()
 {
   static const char* ntpServer = "pool.ntp.org";
 
-  bool receivedTimeOffset = (USE_IPAPI) ? getOffsetFromIpapi() : getOffsetFromWorldTimeAPI();
+  bool receivedTimeOffset = false;
+  if(getOffsetFromWorldTimeAPI())
+  {
+    receivedTimeOffset = true;
+  }
+  else if(getOffsetFromIpapi())   // Try with alternative API (Ipapi), since WorldTimeAPI is currently not available
+  {
+    console.warning.println("[UTILS] Using Ipapi as fallback for time zone offset");
+    receivedTimeOffset = true;
+  }
   if(receivedTimeOffset)
   {
     configTime(raw_offset + dst_offset, 0, ntpServer);
@@ -308,6 +371,26 @@ bool Utils::getOffsetFromIpapi()
   return false;
 }
 
+std::vector<IPAddress> Utils::getConnectedClientIPs(int maxCount)
+{
+  wifi_sta_list_t wifi_sta_list;
+  tcpip_adapter_sta_list_t adapter_sta_list;
+  std::vector<IPAddress> ipAddresses;
+  esp_wifi_ap_get_sta_list(&wifi_sta_list);                         // Get the list of connected clients
+  tcpip_adapter_get_sta_list(&wifi_sta_list, &adapter_sta_list);    // Convert to adapter format for IP mapping
+  int clientCount = adapter_sta_list.num;                           // Get the IP addresses of connected clients
+  if(maxCount > 0 && clientCount > maxCount)
+  {
+    clientCount = maxCount;
+  }
+  for(int i = 0; i < clientCount; i++)
+  {
+    tcpip_adapter_sta_info_t station = adapter_sta_list.sta[i];
+    ipAddresses.emplace_back(IPAddress(station.ip.addr));    // Add IPAddress to vector
+  }
+  return ipAddresses;
+}
+
 void Utils::updateTask(void* pvParameter)
 {
   Utils* ref = (Utils*)pvParameter;
@@ -331,6 +414,7 @@ void Utils::updateTask(void* pvParameter)
       {
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;
+        tryReconnect = false;
         tConnected = millis();
 
         static wifi_country_t myCountry;
@@ -346,10 +430,15 @@ void Utils::updateTask(void* pvParameter)
             country = Utils::USA;
             console.log.println("[UTILS] Country: USA");
           }
+          else if(strncmp(myCountry.cc, "FR", 2) == 0)
+          {
+            country = Utils::France;
+            console.log.println("[UTILS] Country: France");
+          }
           else
           {
             country = Utils::Unknown;
-            console.log.println("[UTILS] Country: Unknown");
+            console.log.printf("[UTILS] Country: Unknown (%s)\n", myCountry.cc);
           }
         }
         getUnixTime();    // Get time offset from the internet
@@ -358,34 +447,40 @@ void Utils::updateTask(void* pvParameter)
       }
       else if(connectionStateOld && !connectionState)
       {
+        tryReconnect = true;
         console.warning.println("[UTILS] Disconnected from WiFi");
       }
 
-      if(WiFi.localIP() == IPAddress(0, 0, 0, 0))    // Check if the IP was set to 0.0.0.0 (disconnected)
+      if(millis() > 10000)    // Wait 10s after booting before checking for a disconnected IP
       {
-        if((millis() - tConnected > 2000) && !forceWiFiOff)
+        if(WiFi.localIP() == IPAddress(0, 0, 0, 0))    // Check if the IP was set to 0.0.0.0 (disconnected)
         {
-          console.warning.println("[UTILS] WiFi connected but IP is 0.0.0.0, disconnecting");
-          connectionState = false;
-          forceWiFiOff = true;
-          wm.disconnect();
-          WiFi.disconnect();
-          WiFi._setStatus(WL_DISCONNECTED);    // Force the status to disconnected
+          if((millis() - tConnected > 2000) && !forceWiFiOff)    // && tryReconnect)
+          {
+            console.warning.println("[UTILS] WiFi connected but IP is 0.0.0.0, disconnecting");
+            connectionState = false;
+            forceWiFiOff = true;
+            tryReconnect = true;
+            wm.disconnect();
+            WiFi.disconnect();
+            WiFi._setStatus(WL_DISCONNECTED);    // This is a bit hacky, but we need somehow to force WiFi API to show as disconnected
+            reconnectWiFi(5);                    // Imeediate try to reconnect
+          }
         }
-      }
-      else
-      {
-        forceWiFiOff = false;
-      }
-
-      if(!connectionState)    // WHile connected, check if the IP was set to 0.0.0.0 (disconnected)
-      {
-        static int t = 0;
-        if(millis() - t > WIFI_RECONNECT_INTERVAL * 1000)
+        else
         {
-          t = millis();
-          tConnected = t;    // Reset the timer, to enable a new connection
-          reconnectWiFi();
+          forceWiFiOff = false;
+        }
+
+        if(tryReconnect)    // Try to reconnect to WiFi if disconnected afer successful connection
+        {
+          static int t = 0;
+          if(millis() - t > WIFI_RECONNECT_INTERVAL * 1000)
+          {
+            t = millis();
+            tConnected = t;    // Reset the timer, to enable a new connection
+            reconnectWiFi();
+          }
         }
       }
     }

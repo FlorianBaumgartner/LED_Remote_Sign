@@ -1360,7 +1360,7 @@ void WiFiManager::handleWifi(boolean scan) {
   String page = getHTTPHead(FPSTR(S_titlewifi)); // @token titlewifi
   if (scan) {
     #ifdef WM_DEBUG_LEVEL
-    // DEBUG_WM(WM_DEBUG_DEV,"refresh flag:",server->hasArg(F("refresh")));
+    DEBUG_WM(WM_DEBUG_DEV,"refresh flag:",server->hasArg(F("refresh")));
     #endif
     WiFi_scanNetworks(server->hasArg(F("refresh")),false); //wifiscan, force if arg refresh
     page += getScanItemOut();
@@ -1477,9 +1477,9 @@ bool WiFiManager::WiFi_scanNetworks(unsigned int cachetime){
 }
 bool WiFiManager::WiFi_scanNetworks(bool force,bool async){
     #ifdef WM_DEBUG_LEVEL
-    // DEBUG_WM(WM_DEBUG_DEV,"scanNetworks async:",async == true);
-    // DEBUG_WM(WM_DEBUG_DEV,_numNetworks,(millis()-_lastscan ));
-    // DEBUG_WM(WM_DEBUG_DEV,"scanNetworks force:",force == true);
+    DEBUG_WM(WM_DEBUG_DEV,"scanNetworks async:",async == true);
+    DEBUG_WM(WM_DEBUG_DEV,_numNetworks,(millis()-_lastscan ));
+    DEBUG_WM(WM_DEBUG_DEV,"scanNetworks force:",force == true);
     #endif
 
     // if 0 networks, rescan @note this was a kludge, now disabling to test real cause ( maybe wifi not init etc)
@@ -3857,14 +3857,15 @@ void WiFiManager::WiFi_autoReconnect(){
   #ifdef ESP8266
     WiFi.setAutoReconnect(_wifiAutoReconnect);
   #elif defined(ESP32)
-    // if(_wifiAutoReconnect){
+    // Florian Baumgartner: We need to check the if statement, turning on _wifiAutoReconnect does not allow for scanning WiFi networks
+    if(_wifiAutoReconnect){
       // @todo move to seperate method, used for event listener now
       #ifdef WM_DEBUG_LEVEL
       DEBUG_WM(WM_DEBUG_VERBOSE,F("ESP32 event handler enabled"));
       #endif
       using namespace std::placeholders;
       if(wm_event_id == 0) wm_event_id = WiFi.onEvent(std::bind(&WiFiManager::WiFiEvent,this,_1,_2));
-    // }
+    }
   #endif
 }
 

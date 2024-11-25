@@ -7,6 +7,8 @@ class Animation:
         Animation.squares = squares
         Animation.canvas_center_x = 64.35
         Animation.canvas_center_y = 70.5
+        Animation.canvas_min_x = min([square['PosX'] for square in squares])
+        Animation.canvas_max_x = max([square['PosX'] for square in squares])
         Animation.trigger = False
         Animation.radius = -1        # mm
 
@@ -18,6 +20,7 @@ class Animation:
 
         # Print the center of the canvas as cpp float
         print(f"const float canvas_center[2] = {{{Animation.canvas_center_x}, {Animation.canvas_center_y}}};")
+        print(f"const float canvas_min_max_x[2] = {{{Animation.canvas_min_x}, {Animation.canvas_max_x}}};")
 
     def map(value, in_min, in_max, out_min, out_max):
         return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
@@ -34,15 +37,25 @@ class Animation:
         
     @staticmethod
     def sine(framecount, color, trigger):
-        speed = 0.05
-        wavelength_mm = 80  # Wavelength for the cosine wave
-        high_color = [0xFF, 0x00, 0x00]  # High color (Red)
-        low_color = [0xFF, 0xA0, 0x00]   # Low color (Black)
+        speed = 1
+        wavelength = 1  # Wavelength
+        high_color = [0xFF, 0x08, 0x08]  # High color
+        low_color = [0xFF, 0xFF, 0x00]   # Low color
 
-        # Go through all squares, calculate the color based on the cosine of the x position
+        angle_offset = (framecount * -speed) % 360
         for i in range(len(color)):
-            x = Animation.squares[i]['PosX'] - Animation.canvas_center_x
-            val = np.cos((-np.abs(x) / wavelength_mm) * 2 * np.pi + framecount * speed)
+            x = Animation.squares[i]['PosX']
+            if x <= Animation.canvas_center_x:
+                relative_x = abs(x - Animation.canvas_min_x)
+                total_range = Animation.canvas_center_x - Animation.canvas_min_x
+                normalized_position = -relative_x / total_range
+            else:
+                relative_x = abs(x - Animation.canvas_center_x)
+                total_range = Animation.canvas_max_x - Animation.canvas_center_x
+                normalized_position = relative_x / total_range
+
+            angle = (normalized_position * 360 / wavelength + angle_offset) % 360
+            val = np.cos(np.radians(angle))
             color[i] = [
                 int(Animation.map(val, -1, 1, low_color[0], high_color[0])),
                 int(Animation.map(val, -1, 1, low_color[1], high_color[1])),
@@ -103,19 +116,19 @@ class Animation:
         return color
 
 
-    @staticmethod
-    def slow_sine(framecount, color, trigger):
-        speed = 5            # one ramp per n frames
-        number_of_groups = 3
-        high_color = [0xFF, 0x00, 0xFF]
-        low_color = [0xFF, 0xA0, 0x00]
+    # @staticmethod
+    # def slow_sine(framecount, color, trigger):
+    #     speed = 5            # one ramp per n frames
+    #     number_of_groups = 3
+    #     high_color = [0xFF, 0x00, 0xFF]
+    #     low_color = [0xFF, 0xA0, 0x00]
 
-        for i in range(len(color)):
-            group = i % number_of_groups
-            val = np.sin((framecount + i * speed) * 0.05)
-            color[i] = [
-                int(Animation.map(val, -1, 1, low_color[0], high_color[0])),
-                int(Animation.map(val, -1, 1, low_color[1], high_color[1])),
-                int(Animation.map(val, -1, 1, low_color[2], high_color[2]))
-            ]
-        return color
+    #     for i in range(len(color)):
+    #         group = i % number_of_groups
+    #         val = np.sin((framecount + i * speed) * 0.05)
+    #         color[i] = [
+    #             int(Animation.map(val, -1, 1, low_color[0], high_color[0])),
+    #             int(Animation.map(val, -1, 1, low_color[1], high_color[1])),
+    #             int(Animation.map(val, -1, 1, low_color[2], high_color[2]))
+    #         ]
+    #     return color

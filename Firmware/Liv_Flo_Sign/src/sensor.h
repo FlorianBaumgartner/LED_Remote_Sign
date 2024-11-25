@@ -43,12 +43,12 @@ class Sensor
  public:
   static constexpr const uint8_t SENSOR_UPDATE_RATE = 20;    // [Hz]
   static constexpr const float PROX_AVR_RATE = 0.05;         // Exponential moving average rate
-  static constexpr const float AMB_AVR_RATE = 0.1;           // Exponential moving average rate
+  static constexpr const float AMB_AVR_RATE = 0.03;          // Exponential moving average rate
   static constexpr const int PROX_SNR_THRESHOLD = 50;        // Value must rise over this threshold compared to the average to trigger an event
   static constexpr const float PROX_BLANK_TIME = 1.5;        // [s]  Time to wait before the next event can be triggered
   static constexpr const uint16_t AMB_VALUE_MIN = 20;        // Goes down to 0 when really dark, consider values below 50 as fairly dark
   static constexpr const uint16_t AMB_VALUE_MAX = 30000;     // Not yet tested in direct sunlight, but goes up 65535 in full LED flashlight
-  static constexpr const float AMB_POW_PARAM = 0.42;    // Values between 0.1...0.7 seem reasonable (lower values mean more sensitive to low light)
+  static constexpr const float AMB_POW_PARAM = 0.48;    // Values between 0.1...0.7 seem reasonable (lower values means brighter light in the dark)
   // Function: u = 255 * (x / AMB_VALUE_MAX)^AMB_POW_PARAM
 
   // A ambient value ~200 is in a slighyly dark room (evening, OK to work)
