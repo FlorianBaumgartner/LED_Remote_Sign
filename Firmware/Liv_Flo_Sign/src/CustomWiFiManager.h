@@ -42,11 +42,7 @@ class CustomWiFiManagerParameter : public WiFiManagerParameter
   CustomWiFiManagerParameter(const char* id, const char* label, const char* defaultValue, int length, const char* custom,
                              int labelPlacement = WFM_LABEL_DEFAULT);
 
-  // Override getCustomHTML to return the custom HTML
-  // virtual const char* getCustomHTML() const override { return _customHTML; }
-
-  private:
-    
+  void setCustomHTML(const char* customHTML) { _customHTML = customHTML; }
 };
 
 

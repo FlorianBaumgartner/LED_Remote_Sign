@@ -113,6 +113,10 @@ class Utils
   static bool shortPressEvent;
   static bool longPressEvent;
 
+  static ParameterSwitch switch_1;
+  static ParameterSwitch switch_2;
+  static ParameterSwitch switch_3;
+
   static WiFiManagerParameter regular_parameter;
   static CustomWiFiManagerParameter time_interval_slider;
   static CustomWiFiManagerParameter switch_parameter;

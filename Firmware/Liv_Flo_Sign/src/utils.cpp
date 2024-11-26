@@ -21,6 +21,11 @@ bool Utils::timezoneValid = false;
 bool Utils::tryReconnect = false;
 String Utils::resetReason = "Unknown";
 
+ParameterSwitch Utils::switch_1("switch_1", "Switch 1", true);
+ParameterSwitch Utils::switch_2("switch_2", "Switch 2", false);
+ParameterSwitch Utils::switch_3("switch_3", "Switch 3", false);
+
+
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
 
@@ -208,6 +213,9 @@ bool Utils::startWiFiManager()
 
   wm.addParameter(&regular_parameter);
   wm.addParameter(&switch_parameter);
+  wm.addParameter(&switch_1.param);
+  wm.addParameter(&switch_2.param);
+  wm.addParameter(&switch_3.param);
 
 
   wm.setSaveParamsCallback(saveParamsCallback);
