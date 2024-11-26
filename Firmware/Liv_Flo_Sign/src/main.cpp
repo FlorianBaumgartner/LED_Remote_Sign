@@ -31,7 +31,7 @@
  ******************************************************************************/
 
 #include <Arduino.h>
-#include "Discord.h"
+#include "discord.h"
 #include "GithubOTA.h"
 #include "app.h"
 #include "console.h"

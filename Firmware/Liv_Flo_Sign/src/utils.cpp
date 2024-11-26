@@ -8,7 +8,7 @@
 #include "device.h"
 #include "esp_wifi.h"
 
-WiFiManagerCustom Utils::wm(console.log);
+CustomWiFiManager Utils::wm(console.log);
 Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
@@ -26,7 +26,10 @@ const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   
 
 
 CustomWiFiManagerParameter Utils::time_interval_slider(
-  // "time_interval", // ID
+  "time_interval",    // ID
+  "Time Interval",    // Label
+  "08:00-16:45",      // Default
+  16,                 // Length
   "<style>"
   ".double-range { width: 100%; max-width: 500px; margin: 10px auto; font-family: Arial, sans-serif; color: #FFFFFF; }"
   ".range-slider { position: relative; width: calc(100% - 20px); margin: 0 auto; height: 10px; background-color: #e1e9f6; border-radius: 5px; "
@@ -47,19 +50,28 @@ CustomWiFiManagerParameter Utils::time_interval_slider(
   "<span class='range-fill'></span>"
   "</div>"
   "<div class='range-input'>"
-  "<input type='range' class='min' min='0' max='1425' value='495' step='15'>"
-  "<input type='range' class='max' min='0' max='1425' value='1110' step='15'>"
+  "<input type='range' class='min' min='0' max='1425' value='480' step='15'>"
+  "<input type='range' class='max' min='0' max='1425' value='1005' step='15'>"
   "</div>"
   "<div class='time-display'>"
-  "<span id='startTime'>08:15</span><span id='endTime'>18:30</span>"
+  "<span id='startTime'>08:00</span><span id='endTime'>16:45</span>"
   "</div>"
-  "<input type='hidden' id='time_interval' name='time_interval' value='08:15-18:30'>"
+  "<input type='hidden' id='time_interval' name='time_interval' value='08:00-16:45'>"
   "<script>"
   "const rangeFill = document.querySelector('.range-fill');"
   "const rangeInputs = document.querySelectorAll('.range-input input');"
   "const startTime = document.getElementById('startTime');"
   "const endTime = document.getElementById('endTime');"
   "const hiddenInput = document.getElementById('time_interval');"
+  "// Set initial values from default"
+  "function initializeValues() {"
+  "  const defaultValues = hiddenInput.value.split('-');"
+  "  const minValue = parseTimeToMinutes(defaultValues[0]);"
+  "  const maxValue = parseTimeToMinutes(defaultValues[1]);"
+  "  rangeInputs[0].value = minValue;"
+  "  rangeInputs[1].value = maxValue;"
+  "  updateSlider();"
+  "}"
   "function updateSlider() {"
   "  const min = parseInt(rangeInputs[0].value);"
   "  const max = parseInt(rangeInputs[1].value);"
@@ -80,17 +92,49 @@ CustomWiFiManagerParameter Utils::time_interval_slider(
   "  const minutes = (value % 60).toString().padStart(2, '0');"
   "  return `${hours}:${minutes}`;"
   "}"
+  "function parseTimeToMinutes(time) {"
+  "  const [hours, minutes] = time.split(':').map(Number);"
+  "  return hours * 60 + minutes;"
+  "}"
   "rangeInputs.forEach(input => input.addEventListener('input', updateSlider));"
-  "updateSlider();"
+  "initializeValues();"
   "</script>");
 
 
-const char* customSwitch = R"rawliteral(
-<div>
-  <label for="customSwitch">Custom Switch:</label>
-  <input type="checkbox" id="customSwitch" name="customSwitch" value="1" checked>
-</div>
-)rawliteral";
+CustomWiFiManagerParameter Utils::switch_parameter(
+  "enable_feature",    // ID
+  nullptr,             // Label
+  "1",                 // Default (1 for enabled, 0 for disabled)
+  1,                   // Length
+  "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>"
+  "<style>"
+  "label { font-family: Verdana, sans-serif; font-size: 1em; margin: 5px 0; }"
+  ".custom-wrapper, .switch-wrapper { padding: 0; }"    // Added this line
+  ".switch-wrapper { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }"
+  ".switch { position: relative; display: inline-block; width: 50px; height: 24px; }"
+  ".switch input { opacity: 0; width: 0; height: 0; }"
+  ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: "
+  "24px; }"
+  ".slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.4s; "
+  "border-radius: 50%; }"
+  "input:checked + .slider { background-color: #007bff; }"
+  "input:checked + .slider:before { transform: translateX(26px); }"
+  "</style>"
+  "<div class='switch-wrapper'>"
+  "<label for='enable_feature_checkbox'>Enable Feature</label>"    // Label is left-aligned
+  "<label class='switch'>"
+  "<input type='checkbox' id='enable_feature_checkbox' value='1' checked>"
+  "<span class='slider'></span>"
+  "</label>"                                                                     // Switch is right-aligned
+  "<input type='hidden' id='enable_feature' name='enable_feature' value='1'>"    // Hidden input to pass the correct value
+  "</div>"
+  "<script>"
+  "const checkbox = document.getElementById('enable_feature_checkbox');"
+  "const hiddenInput = document.getElementById('enable_feature');"
+  "checkbox.addEventListener('change', function() {"
+  "  hiddenInput.value = this.checked ? '1' : '0';"    // Dynamically update hidden input based on checkbox state
+  "});"
+  "</script>");
 
 
 const char* colorPickerHTML =
@@ -108,7 +152,7 @@ const char* colorPickerHTML =
   "</body></html>";
 
 
-WiFiManagerParameter switchParam(customSwitch);
+WiFiManagerParameter Utils::regular_parameter("regular_parameter", "Regular Parameter", "Default Value", 16);
 
 
 bool Utils::begin(void)
@@ -160,10 +204,12 @@ bool Utils::startWiFiManager()
   wm.startWebPortal();
 
   // time_interval_slider.setValue("00:00-02:00", 16);    // Allocate enough space for the value
-  wm.addParameter(&time_interval_slider);
+  // wm.addParameter(&time_interval_slider);
+
+  wm.addParameter(&regular_parameter);
+  wm.addParameter(&switch_parameter);
 
 
-  wm.addParameter(&switchParam);
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
   return true;

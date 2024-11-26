@@ -34,7 +34,8 @@
 #define UTILS_H
 
 #include <Arduino.h>
-#include <CustomWiFiManager.h>
+#include <customWiFiManager.h>
+#include <customParameter.h>
 #include <esp_task_wdt.h>
 #include <vector>
 
@@ -68,7 +69,7 @@ class Utils
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
   static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
 
-  static WiFiManagerCustom wm;
+  static CustomWiFiManager wm;
 
   Utils(int buttonPin) { this->buttonPin = buttonPin; }
   static bool begin(void);
@@ -112,7 +113,9 @@ class Utils
   static bool shortPressEvent;
   static bool longPressEvent;
 
+  static WiFiManagerParameter regular_parameter;
   static CustomWiFiManagerParameter time_interval_slider;
+  static CustomWiFiManagerParameter switch_parameter;
 
   static bool startWiFiManager();
   static bool getOffsetFromWorldTimeAPI();

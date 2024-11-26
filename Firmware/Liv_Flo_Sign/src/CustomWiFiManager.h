@@ -1,5 +1,5 @@
 /******************************************************************************
- * file    CustomWiFiManager.h
+ * file    customWiFiManager.h
  *******************************************************************************
  * brief   Inherit from WiFiManager to add custom HTML elements
  *******************************************************************************
@@ -39,18 +39,22 @@
 class CustomWiFiManagerParameter : public WiFiManagerParameter
 {
  public:
-  CustomWiFiManagerParameter(const char* customHTML) : WiFiManagerParameter(nullptr, nullptr, nullptr, 0, customHTML) {}
+  CustomWiFiManagerParameter(const char* id, const char* label, const char* defaultValue, int length, const char* custom,
+                             int labelPlacement = WFM_LABEL_DEFAULT);
 
   // Override getCustomHTML to return the custom HTML
-  virtual const char* getCustomHTML() const override { return _customHTML; }
+  // virtual const char* getCustomHTML() const override { return _customHTML; }
+
+  private:
+    
 };
 
 
-class WiFiManagerCustom : public WiFiManager
+class CustomWiFiManager : public WiFiManager
 {
  public:
-  WiFiManagerCustom() : WiFiManager() {}
-  WiFiManagerCustom(Print& consolePort) : WiFiManager(consolePort) {}
+  CustomWiFiManager() : WiFiManager() {}
+  CustomWiFiManager(Print& consolePort) : WiFiManager(consolePort) {}
   void setConfigPortalSSID(String apName) { _apName = apName; }
 
 
@@ -61,7 +65,11 @@ class WiFiManagerCustom : public WiFiManager
   void setupConfigPortal();
   void setupHTTPServer();
   void handleInfo();
+  void handleParam();
+  void handleWifi(boolean scan);
   String getInfoData(String id);
+
+  String getParamOut();
 
  protected:
   bool _allowExit = false;         // Allow the user to exit the configuration portal

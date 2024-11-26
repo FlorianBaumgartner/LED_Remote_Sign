@@ -1,15 +1,15 @@
 /******************************************************************************
- * file    app.h
+ * file    customParameter.h
  *******************************************************************************
- * brief   Main Application
+ * brief   HTML/CSS/JS custom parameters
  *******************************************************************************
  * author  Florian Baumgartner
  * version 1.0
- * date    2024-10-17
+ * date    2024-11-25
  *******************************************************************************
  * MIT License
  *
- * Copyright (c) 2022 Crelin - Florian Baumgartner
+ * Copyright (c) 2024 Crelin - Florian Baumgartner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,44 +30,11 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#ifndef APP_H
-#define APP_H
+#ifndef CUSTOM_PARAMETER_H
+#define CUSTOM_PARAMETER_H
 
 #include <Arduino.h>
-#include "discord.h"
-#include "githubOTA.h"
-#include "displayMatrix.h"
-#include "displaySign.h"
-#include "sensor.h"
-#include "utils.h"
+#include <CustomWiFiManager.h>
 
-class App
-{
- public:
-  static constexpr const float APP_UPDATE_RATE = 10.0;     // [Hz]
-  static constexpr const float LED_UPDATE_RATE = 30.0;    // [Hz]
-
-  static constexpr const float IP_ADDRESS_SHOW_TIME = 7.0;    // [s]
-
-  App(Utils& utils, Sensor& sensor, Discord& discord, GithubOTA& githubOTA, DisplayMatrix& disp, DisplaySign& sign)
-      : utils(utils), sensor(sensor), discord(discord), githubOTA(githubOTA), disp(disp), sign(sign)
-  {}
-
-  bool begin();
-
- private:
-  Utils& utils;
-  Sensor& sensor;
-  Discord& discord;
-  GithubOTA& githubOTA;
-  DisplayMatrix& disp;
-  DisplaySign& sign;
-
-  Timer showIpAddressTimer;
-  bool booting = true;
-
-  static void appTask(void* pvParameter);
-  static void ledTask(void* pvParameter);
-};
 
 #endif

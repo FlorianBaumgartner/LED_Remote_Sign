@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * file    CustomWiFiManager.cpp
+ * file    customWiFiManager.cpp
  *******************************************************************************
  * brief   Inherit from WiFiManager to add custom HTML elements
  *******************************************************************************
@@ -31,11 +31,20 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "CustomWiFiManager.h"
+#include "customWiFiManager.h"
 #include <console.h>
 
 
-void WiFiManagerCustom::startWebPortal()    // Override works
+CustomWiFiManagerParameter::CustomWiFiManagerParameter(const char* id, const char* label, const char* defaultValue, int length, const char* custom,
+                                                       int labelPlacement)
+    : WiFiManagerParameter(id, label, defaultValue, length, custom, labelPlacement)
+{}
+
+
+// *****************************************************************************
+
+
+void CustomWiFiManager::startWebPortal()    // Override works
 {
   if(configPortalActive || webPortalActive)
     return;
@@ -44,13 +53,13 @@ void WiFiManagerCustom::startWebPortal()    // Override works
   webPortalActive = true;
 }
 
-boolean WiFiManagerCustom::startConfigPortal()
+boolean CustomWiFiManager::startConfigPortal()
 {
   String ssid = getDefaultAPName();
   return startConfigPortal(ssid.c_str(), NULL);
 }
 
-boolean WiFiManagerCustom::startConfigPortal(char const* apName, char const* apPassword)
+boolean CustomWiFiManager::startConfigPortal(char const* apName, char const* apPassword)
 {
   _begin();
 
@@ -192,7 +201,7 @@ boolean WiFiManagerCustom::startConfigPortal(char const* apName, char const* apP
   return result;
 }
 
-void WiFiManagerCustom::setupConfigPortal()    // Override works
+void CustomWiFiManager::setupConfigPortal()    // Override works
 {
   setupHTTPServer();
   _lastscan = 0;    // reset network scan cache
@@ -200,7 +209,7 @@ void WiFiManagerCustom::setupConfigPortal()    // Override works
     WiFi_scanNetworks(true, true);    // preload wifiscan , async
 }
 
-void WiFiManagerCustom::setupHTTPServer()    // Override works
+void CustomWiFiManager::setupHTTPServer()    // Override works
 {
 #ifdef WM_DEBUG_LEVEL
   DEBUG_WM(F("Starting Web Portal"));
@@ -229,11 +238,11 @@ void WiFiManagerCustom::setupHTTPServer()    // Override works
 
   // G macro workaround for Uri() bug https://github.com/esp8266/Arduino/issues/7102
   server->on(WM_G(R_root), std::bind(&WiFiManager::handleRoot, this));
-  server->on(WM_G(R_wifi), std::bind(&WiFiManager::handleWifi, this, true));
-  server->on(WM_G(R_wifinoscan), std::bind(&WiFiManager::handleWifi, this, false));
+  server->on(WM_G(R_wifi), std::bind(&CustomWiFiManager::handleWifi, this, true));           // Reroute to custom handler
+  server->on(WM_G(R_wifinoscan), std::bind(&CustomWiFiManager::handleWifi, this, false));    // Reroute to custom handler
   server->on(WM_G(R_wifisave), std::bind(&WiFiManager::handleWifiSave, this));
-  server->on(WM_G(R_info), std::bind(&WiFiManagerCustom::handleInfo, this));    // Reroute to custom handler
-  server->on(WM_G(R_param), std::bind(&WiFiManager::handleParam, this));
+  server->on(WM_G(R_info), std::bind(&CustomWiFiManager::handleInfo, this));      // Reroute to custom handler
+  server->on(WM_G(R_param), std::bind(&CustomWiFiManager::handleParam, this));    // Reroute to custom handler
   server->on(WM_G(R_paramsave), std::bind(&WiFiManager::handleParamSave, this));
   server->on(WM_G(R_restart), std::bind(&WiFiManager::handleReset, this));
   server->on(WM_G(R_exit), std::bind(&WiFiManager::handleExit, this));
@@ -251,7 +260,7 @@ void WiFiManagerCustom::setupHTTPServer()    // Override works
 #endif
 }
 
-void WiFiManagerCustom::handleInfo()
+void CustomWiFiManager::handleInfo()
 {
 #ifdef WM_DEBUG_LEVEL
   DEBUG_WM(WM_DEBUG_VERBOSE, F("<- HTTP Info"));
@@ -317,7 +326,95 @@ void WiFiManagerCustom::handleInfo()
 #endif
 }
 
-String WiFiManagerCustom::getInfoData(String id)
+void CustomWiFiManager::handleParam()
+{
+#ifdef WM_DEBUG_LEVEL
+  DEBUG_WM(WM_DEBUG_VERBOSE, F("<- HTTP Param"));
+#endif
+  handleRequest();
+  String page = getHTTPHead(FPSTR(S_titleparam));    // @token titlewifi
+
+  String pitem = "";
+
+  pitem = FPSTR(HTTP_FORM_START);
+  pitem.replace(FPSTR(T_v), F("paramsave"));
+  page += pitem;
+
+  page += getParamOut();
+  page += FPSTR(HTTP_FORM_END);
+  if(_showBack)
+    page += FPSTR(HTTP_BACKBTN);
+  reportStatus(page);
+  page += FPSTR(HTTP_END);
+
+  HTTPSend(page);
+
+#ifdef WM_DEBUG_LEVEL
+  DEBUG_WM(WM_DEBUG_DEV, F("Sent param page"));
+#endif
+}
+
+void CustomWiFiManager::handleWifi(boolean scan)
+{
+#ifdef WM_DEBUG_LEVEL
+  DEBUG_WM(WM_DEBUG_VERBOSE, F("<- HTTP Wifi"));
+#endif
+  handleRequest();
+  String page = getHTTPHead(FPSTR(S_titlewifi));    // @token titlewifi
+  if(scan)
+  {
+#ifdef WM_DEBUG_LEVEL
+    DEBUG_WM(WM_DEBUG_DEV, "refresh flag:", server->hasArg(F("refresh")));
+#endif
+    WiFi_scanNetworks(server->hasArg(F("refresh")), false);    //wifiscan, force if arg refresh
+    page += getScanItemOut();
+  }
+  String pitem = "";
+
+  pitem = FPSTR(HTTP_FORM_START);
+  pitem.replace(FPSTR(T_v), F("wifisave"));    // set form action
+  page += pitem;
+
+  pitem = FPSTR(HTTP_FORM_WIFI);
+  pitem.replace(FPSTR(T_v), WiFi_SSID());
+
+  if(_showPassword)
+  {
+    pitem.replace(FPSTR(T_p), WiFi_psk());
+  }
+  else if(WiFi_psk() != "")
+  {
+    pitem.replace(FPSTR(T_p), FPSTR(S_passph));
+  }
+  else
+  {
+    pitem.replace(FPSTR(T_p), "");
+  }
+
+  page += pitem;
+
+  page += getStaticOut();
+  page += FPSTR(HTTP_FORM_WIFI_END);
+  if(_paramsInWifi && _paramsCount > 0)
+  {
+    page += FPSTR(HTTP_FORM_PARAM_HEAD);
+    page += getParamOut();
+  }
+  page += FPSTR(HTTP_FORM_END);
+  page += FPSTR(HTTP_SCAN_LINK);
+  if(_showBack)
+    page += FPSTR(HTTP_BACKBTN);
+  reportStatus(page);
+  page += FPSTR(HTTP_END);
+
+  HTTPSend(page);
+
+#ifdef WM_DEBUG_LEVEL
+  DEBUG_WM(WM_DEBUG_DEV, F("Sent config page"));
+#endif
+}
+
+String CustomWiFiManager::getInfoData(String id)
 {
 
   String p;
@@ -621,4 +718,83 @@ String WiFiManagerCustom::getInfoData(String id)
     p.replace(FPSTR(T_1), String("v") + FIRMWARE_VERSION);
   }
   return p;
+}
+
+
+// ****************************************************** Parameter Logic ******************************************************
+
+String CustomWiFiManager::getParamOut()
+{
+  String page;
+
+#ifdef WM_DEBUG_LEVEL
+  DEBUG_WM(WM_DEBUG_DEV, F("getParamOut"), _paramsCount);
+#endif
+
+  if(_paramsCount > 0)
+  {
+    for(int i = 0; i < _paramsCount; i++)
+    {
+      if(_params[i] == NULL || _params[i]->_length > 99999)
+      {
+#ifdef WM_DEBUG_LEVEL
+        DEBUG_WM(WM_DEBUG_ERROR, F("[ERROR] WiFiManagerParameter is out of scope"));
+#endif
+        return "";
+      }
+
+      // Identify whether the parameter is custom
+      CustomWiFiManagerParameter* customParam = dynamic_cast<CustomWiFiManagerParameter*>(_params[i]);
+
+      String pitem;
+
+      // If the parameter is custom, generate custom HTML
+      if(customParam)
+      {
+        // Use custom template for custom parameters
+        pitem = FPSTR(HTTP_FORM_CUSTOM_PARAM);    // Custom template placeholder
+        pitem.replace("{id}", customParam->getID());
+        if(customParam->getLabel())
+          pitem.replace("{label}", customParam->getLabel());
+        else
+          pitem.replace("{label}", "");
+        pitem.replace("{html}", customParam->getCustomHTML());    // Inject the custom HTML provided
+      }
+      else
+      {
+        // Regular parameter: Generate input field
+        pitem = FPSTR(HTTP_FORM_PARAM);
+        pitem.replace("{i}", _params[i]->getID());
+        pitem.replace("{n}", _params[i]->getID());
+        pitem.replace("{l}", String(_params[i]->getValueLength()));
+        pitem.replace("{v}", _params[i]->getValue());
+        pitem.replace("{c}", "");    // Add additional attributes if needed
+      }
+
+      // Add label if required (before or after)
+      switch(_params[i]->getLabelPlacement())
+      {
+        case WFM_LABEL_BEFORE:
+          page += FPSTR(HTTP_FORM_LABEL);
+          page.replace("{i}", _params[i]->getID());
+          page.replace("{t}", _params[i]->getLabel());
+          page += pitem;
+          break;
+
+        case WFM_LABEL_AFTER:
+          page += pitem;
+          page += FPSTR(HTTP_FORM_LABEL);
+          page.replace("{i}", _params[i]->getID());
+          page.replace("{t}", _params[i]->getLabel());
+          break;
+
+        default:
+          // No label
+          page += pitem;
+          break;
+      }
+    }
+  }
+
+  return page;
 }

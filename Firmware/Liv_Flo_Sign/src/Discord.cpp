@@ -1,5 +1,5 @@
 /******************************************************************************
- * file    Discord.cpp
+ * file    discord.cpp
  *******************************************************************************
  * brief   Discord Communication
  *******************************************************************************
@@ -30,7 +30,7 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "Discord.h"
+#include "discord.h"
 #include <WiFi.h>
 #include <esp_system.h>
 #include "console.h"
@@ -202,7 +202,6 @@ bool Discord::checkForMessages()
     if(error)
     {
       console.error.printf("[DISCORD] Failed to parse JSON: %s\n", error.c_str());
-      Serial.println(payload);
       break;
     }
     if(doc.isNull() || doc.size() == 0)
@@ -270,21 +269,21 @@ bool Discord::checkForMessages()
 
 bool Discord::checkForOutgoingEvents()
 {
-  if (eventMessageToSend.length() == 0)
+  if(eventMessageToSend.length() == 0)
   {
-    return false; // No event to send
+    return false;    // No event to send
   }
 
   client.setTimeout(5000);
   client.setBufferSizes(8192 /* rx */, 1024 /* tx */);
-  client.setDebugLevel(1); // none = 0, error = 1, warn = 2, info = 3, dump = 4
+  client.setDebugLevel(1);    // none = 0, error = 1, warn = 2, info = 3, dump = 4
   client.setClient(&base_client);
-  client.setInsecure(); // Using insecure connection for testing
-  String url = String("https://") + discordHost + apiUrl; // Ensure `apiPath` points to the correct endpoint
-  if (!http.begin(client, url))
+  client.setInsecure();                                      // Using insecure connection for testing
+  String url = String("https://") + discordHost + apiUrl;    // Ensure `apiPath` points to the correct endpoint
+  if(!http.begin(client, url))
   {
     console.error.printf("[DISCORD] Failed to initialize connection to: %s\n", url.c_str());
-    return false; // Server not available
+    return false;    // Server not available
   }
 
   // Prepare the event payload
@@ -292,7 +291,7 @@ bool Discord::checkForOutgoingEvents()
   String payload = "{\"content\":\"" + eventString + "\"}";
 
   // Add headers
-  http.addHeader("Authorization", "Bot " + apiToken, true); // Ensure the token is sent
+  http.addHeader("Authorization", "Bot " + apiToken, true);    // Ensure the token is sent
   http.addHeader("User-Agent", "ESP32");
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Connection", "keep-alive");
@@ -300,7 +299,7 @@ bool Discord::checkForOutgoingEvents()
   // Send the POST request
   int httpCode = http.POST(payload);
 
-  if (httpCode <= 0)
+  if(httpCode <= 0)
   {
     console.error.printf("[DISCORD] HTTP POST failed! Error code: %d, reason: %s\n", httpCode, http.errorToString(httpCode).c_str());
     http.end();
@@ -308,7 +307,7 @@ bool Discord::checkForOutgoingEvents()
     return false;
   }
 
-  if (httpCode < 200 || httpCode >= 300)
+  if(httpCode < 200 || httpCode >= 300)
   {
     console.warning.printf("[DISCORD] Unexpected HTTP response code: %d\n", httpCode);
     http.end();
@@ -322,12 +321,11 @@ bool Discord::checkForOutgoingEvents()
   eventMessageToSend = "";
   outgoingEventFlag = false;
 
-  http.end(); // Always end the HTTPClient session
+  http.end();    // Always end the HTTPClient session
   client.stop();
 
-  return true; // Event sent successfully
+  return true;    // Event sent successfully
 }
-
 
 
 void Discord::updateTask(void* param)
