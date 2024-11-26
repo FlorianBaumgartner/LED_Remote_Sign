@@ -19,10 +19,11 @@ bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
 bool Utils::timezoneValid = false;
 bool Utils::tryReconnect = false;
-
+String Utils::resetReason = "Unknown";
 
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
+
 
 CustomWiFiManagerParameter Utils::time_interval_slider(
   // "time_interval", // ID
@@ -113,10 +114,22 @@ WiFiManagerParameter switchParam(customSwitch);
 bool Utils::begin(void)
 {
   pinMode(buttonPin, INPUT_PULLUP);
+  resetReason = String(resetReasons[esp_reset_reason()]);
+  console.log.printf("[UTILS] Reset reason: %s\n", resetReason);    // Panic, Watchdog is bad
 
-  esp_reset_reason_t resetReason = esp_reset_reason();
-  console.log.printf("[UTILS] Reset reason: %s\n", resetReasons[resetReason]);    // Panic, Watchdog is bad
+  connectionState = false;
+  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);    // Stack Watermark: 4672
 
+  Timer0_Cfg = timerBegin(0, 80, true);
+  timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
+  timerAlarmWrite(Timer0_Cfg, 1000000 / BUTTON_TIMER_RATE, true);
+  timerAlarmEnable(Timer0_Cfg);
+
+  return true;
+}
+
+bool Utils::startWiFiManager()
+{
   WiFi.begin();
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.setSleep(false);
@@ -124,7 +137,7 @@ bool Utils::begin(void)
   wm.setConfigPortalBlocking(false);
   wm.setConnectTimeout(0);
   static std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
-  const char* headhtml =
+  static const char* headhtml =
     "<link rel='icon' type='image/png' "
     "href='data:image/"
     "png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADQElEQVRoQ+2YjW0VQQyE7Q6gAkgFkAogFUAqgFQAVACpAKiAUAFQAaECQgWECggVGH1PPrRvn3dv9/"
@@ -153,13 +166,6 @@ bool Utils::begin(void)
   wm.addParameter(&switchParam);
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
-  connectionState = false;
-  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);    // Stack Watermark: 4672
-
-  Timer0_Cfg = timerBegin(0, 80, true);
-  timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
-  timerAlarmWrite(Timer0_Cfg, 1000000 / BUTTON_TIMER_RATE, true);
-  timerAlarmEnable(Timer0_Cfg);
   return true;
 }
 
@@ -285,7 +291,7 @@ bool Utils::updateTimeZoneOffset()
   {
     receivedTimeOffset = true;
   }
-  else if(getOffsetFromIpapi())   // Try with alternative API (Ipapi), since WorldTimeAPI is currently not available
+  else if(getOffsetFromIpapi())    // Try with alternative API (Ipapi), since WorldTimeAPI is currently not available
   {
     console.warning.println("[UTILS] Using Ipapi as fallback for time zone offset");
     receivedTimeOffset = true;
@@ -396,6 +402,8 @@ void Utils::updateTask(void* pvParameter)
   Utils* ref = (Utils*)pvParameter;
   static bool connectionStateOld = false;
   static uint32_t t = 0;
+
+  ref->startWiFiManager();
 
   while(true)
   {

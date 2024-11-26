@@ -53,6 +53,16 @@ class WiFiManagerCustom : public WiFiManager
   WiFiManagerCustom(Print& consolePort) : WiFiManager(consolePort) {}
   void setConfigPortalSSID(String apName) { _apName = apName; }
 
+
+  // Protected functions are now public, ungly I know, but it's the only way to access them
+  void startWebPortal();
+  boolean startConfigPortal();
+  boolean startConfigPortal(char const* apName, char const* apPassword = NULL);
+  void setupConfigPortal();
+  void setupHTTPServer();
+  void handleInfo();
+  String getInfoData(String id);
+
  protected:
   bool _allowExit = false;         // Allow the user to exit the configuration portal
   bool _autoforcerescan = true;    // Automatically force a rescan if no networks are found

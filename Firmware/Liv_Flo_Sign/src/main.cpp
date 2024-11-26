@@ -58,17 +58,11 @@ static DisplaySign sign(LED_SIGNAL_PIN, LED_SIGN_COUNT);
 static App app(utils, sensor, discord, githubOTA, disp, sign);
 
 
-
 void setup()
 {
   console.begin();
-
-  // mbedtls_ssl_conf_session_cache
-  
-  // mbedtls_platform_set_calloc_free(sm_calloc, sm_free);
-
-  app.begin();
   utils.begin();
+  app.begin();
 }
 
 void loop()

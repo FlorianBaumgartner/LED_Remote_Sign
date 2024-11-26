@@ -246,6 +246,7 @@ const char HTTP_INFO_aboutver[] PROGMEM = "<dt>WiFiManager</dt><dd>{1}</dd>";
 const char HTTP_INFO_aboutarduino[] PROGMEM = "<dt>Arduino</dt><dd>{1}</dd>";
 const char HTTP_INFO_aboutsdk[] PROGMEM = "<dt>ESP-SDK/IDF</dt><dd>{1}</dd>";
 const char HTTP_INFO_aboutdate[] PROGMEM = "<dt>Build date</dt><dd>{1}</dd>";
+const char HTTP_INFO_firmwareversion[] PROGMEM = "<dt>Firmware version</dt><dd>{1}</dd>";
 
 const char S_brand[] PROGMEM = "Liv-Flo Sign";
 const char S_debugPrefix[] PROGMEM = "[WM] ";

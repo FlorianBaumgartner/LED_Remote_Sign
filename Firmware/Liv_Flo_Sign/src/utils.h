@@ -72,6 +72,7 @@ class Utils
 
   Utils(int buttonPin) { this->buttonPin = buttonPin; }
   static bool begin(void);
+  static String getResetReason() { return resetReason; }
   static uint32_t getUnixTime();                      // GMT+0000
   static bool getCurrentTime(struct tm& timeinfo);    // Local time
   static bool isDaylightSavingTime() { return dst_offset != 0; }
@@ -97,6 +98,7 @@ class Utils
  private:
   static const char* resetReasons[];
   static const char* serialNumber[];
+  static String resetReason;
   static Country country;
   static int32_t raw_offset;
   static int32_t dst_offset;
@@ -112,6 +114,7 @@ class Utils
 
   static CustomWiFiManagerParameter time_interval_slider;
 
+  static bool startWiFiManager();
   static bool getOffsetFromWorldTimeAPI();
   static bool getOffsetFromIpapi();
   static std::vector<IPAddress> getConnectedClientIPs(int maxCount = -1);

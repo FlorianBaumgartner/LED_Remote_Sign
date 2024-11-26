@@ -40,7 +40,7 @@
 
 #define INTERFACE_UPDATE_RATE      10           // [hz]
 #define QUEUE_BUFFER_LENGTH        (1 << 11)    // [#]    Buffer Size must be power of 2
-#define CONSOLE_ACTIVE_DELAY       250          // [ms]   Data transmission hold-back delay after console object has been enabled
+#define CONSOLE_ACTIVE_DELAY       500          // [ms]   Data transmission hold-back delay after console object has been enabled
 #define INTERFACE_ACTIVE_DELAY     500    // [ms]   Data transmission hold-back delay after physical connection has been established (Terminal opened)
 
 #define CONSOLE_CLEAR              "\033[2J\033[1;1H"

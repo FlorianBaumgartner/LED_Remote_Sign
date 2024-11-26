@@ -625,7 +625,7 @@ public:
     unsigned int  _scancachetime          = 30000; // ms cache time for preload scans
     boolean       _asyncScan              = false; // perform wifi network scan async
     
-protected:
+// protected:
 
     boolean       _autoforcerescan        = false;  // automatically force rescan if scan networks is 0, ignoring cache
     
@@ -664,7 +664,7 @@ protected:
     // webserver handlers
 public:
     void          handleNotFound();
-protected:
+// protected:
     void          HTTPSend(const String &content);
     void          handleRoot();
     void          handleWifi(boolean scan);

@@ -32,6 +32,8 @@
 
 #include "app.h"
 #include "console.h"
+#include "device.h"
+#include "utils.h"
 
 bool App::begin()
 {
@@ -40,6 +42,9 @@ bool App::begin()
   sensor.begin();
   disp.begin();
   sign.begin();
+
+  static String bootMessage = "BOOT " + Device::getDeviceName() + ": v" + String(FIRMWARE_VERSION) + " (" + utils.getResetReason() + ")";
+  discord.sendEvent(bootMessage.c_str());
 
   xTaskCreate(appTask, "app_task", 4096, this, 17, NULL);         // Stack Watermark: 2476
   xTaskCreate(ledTask, "led_sign_task", 4096, this, 20, NULL);    // Stack Watermark: 2492
