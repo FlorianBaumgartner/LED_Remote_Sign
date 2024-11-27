@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
+import os
 
 # Define the size of the images to match the font size
 
@@ -14,9 +15,10 @@ font_sizes = range(5, 1000)
 export_folder_path = base_path / 'export'
 export_folder_path.mkdir(exist_ok=True)
 
-# Delete all files in the export folder
-for filename in export_folder_path.iterdir():
-    filename.unlink()
+# Delete all files in the "export" folder
+for filename in os.listdir(base_path / "export"):
+    os.remove(base_path / "export" / filename)
+
 
 for font_size in font_sizes: # Font size for the emojis
     try:
@@ -35,6 +37,10 @@ for font_size in font_sizes: # Font size for the emojis
         with emoji_list_path.open('r', encoding='utf-8') as f:
             emojis = [line.strip() for line in f if line.strip()]
 
+        # Remove double emojis
+        emojis = list(set(emojis))
+
+        processed_emojis = []
         # Process each emoji in the list
         for i, emoji in enumerate(emojis):
             # Create a new blank image with an RGB mode and black background
@@ -47,12 +53,22 @@ for font_size in font_sizes: # Font size for the emojis
             # Convert emoji to its hex code representation for the filename, ignoring ZWJ and variant selectors
             hex_filename = '-'.join(f'{ord(char):x}' for char in emoji if ord(char) not in [0x200D, 0xFE0F])
 
+            # Check if hex_filename conatins - (dash), ignore the emoji since it is not a single emoji
+            if '-' in hex_filename:
+                print(f"Ignored {emoji} with hex code {hex_filename}")
+                continue
+
             # Save the image as PNG with the hex code representation as filename
-            output_file_path = export_folder_path / f'{i:03d}_{hex_filename}.png'
+            output_file_path = export_folder_path / f'{hex_filename}.png'
             im.save(output_file_path)
+            processed_emojis.append(emoji)  # Add the emoji to the processed list
 
             # print(f"Saved {output_file_path}")
         print(f"Generated {len(emojis)} emoji images with size {font_size}.")
+
+        # Write back the list of emojis to the file
+        with emoji_list_path.open('w', encoding='utf-8') as f:
+            f.write('\n'.join(processed_emojis))
 
     except Exception as e:
         print(f"Error: {e}")

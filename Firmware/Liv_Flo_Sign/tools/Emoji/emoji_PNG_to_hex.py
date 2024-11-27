@@ -54,7 +54,6 @@ if __name__ == "__main__":
 
                 # Get UTF-8 hex representation for filename and comments
                 emoji_name = filename.split('.')[0]
-                emoji_name = emoji_name[4:]  # Remove the index and underscore
                 utf8_symbols = unicode_to_utf8_dec(emoji_name)
 
                 utf8_comment = f"({', '.join(f'{byte}' for byte in utf8_symbols)})"
@@ -90,7 +89,6 @@ if __name__ == "__main__":
         for filename in sorted(os.listdir(root / "export")):
             if filename.endswith(".png"):
                 emoji_name = filename.split('.')[0]
-                emoji_name = emoji_name[4:]  # Remove the index and underscore
                 code_points = emoji_name.split('-')
                 emoji_unicode = int(code_points[0], 16)
                 array_field_name = f"emoji_{emoji_name}"
