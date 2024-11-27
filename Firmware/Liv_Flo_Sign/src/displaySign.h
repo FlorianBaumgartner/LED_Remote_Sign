@@ -44,7 +44,7 @@ class DisplaySign
   static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 120;
   static constexpr const uint32_t BOOT_ANIMATION_COLOR = 0xFC5400;
-  static constexpr const uint32_t NIGHT_MODE_COLOR = 0xFC5400;
+  static constexpr const uint32_t NIGHT_MODE_COLOR = 0xFC0000;
 
 
   DisplaySign(uint8_t pin, int count) : pixels(count, pin, NEO_GRB + NEO_KHZ800) {}
