@@ -144,8 +144,9 @@ void App::appTask(void* pvParameter)
     uint8_t brightness = map(app->sensor.getAmbientBrightness(), 0, 255, 0, app->disp.MAX_BRIGHTNESS);
     if(brightness < NIGHT_LIGHT_MODE_MIN)
     {
-      app->sign.setNightMode(Utils::getNightLight());    // Enable night mode if user has set it
-      app->sign.setBrightness(NIGHT_LIGHT_MODE_MIN);
+      bool nightMode = Utils::getNightLight();
+      app->sign.setNightMode(nightMode);    // Enable night mode if user has set it
+      app->sign.setBrightness(nightMode? NIGHT_LIGHT_MODE_MIN : 0);
       app->disp.setBrightness(0);    // Turn off display for low brightness environments
     }
     else
