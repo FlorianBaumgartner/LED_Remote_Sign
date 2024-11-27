@@ -743,32 +743,35 @@ String CustomWiFiManager::getParamOut()
         return "";
       }
 
-      // Identify whether the parameter is custom
-      CustomWiFiManagerParameter* customParam = dynamic_cast<CustomWiFiManagerParameter*>(_params[i]);
-
       String pitem;
 
-      // If the parameter is custom, generate custom HTML
-      if(customParam)
+      // Check if the parameter is a WiFiManagerParameter and NOT a derived CustomWiFiManagerParameter
+      if(typeid(*_params[i]) == typeid(WiFiManagerParameter))
       {
-        // Use custom template for custom parameters
-        pitem = FPSTR(HTTP_FORM_CUSTOM_PARAM);    // Custom template placeholder
-        pitem.replace("{id}", customParam->getID());
-        if(customParam->getLabel())
-          pitem.replace("{label}", customParam->getLabel());
-        else
-          pitem.replace("{label}", "");
-        pitem.replace("{html}", customParam->getCustomHTML());    // Inject the custom HTML provided
-      }
-      else
-      {
-        // Regular parameter: Generate input field
+        // Handle regular parameter
         pitem = FPSTR(HTTP_FORM_PARAM);
         pitem.replace("{i}", _params[i]->getID());
         pitem.replace("{n}", _params[i]->getID());
         pitem.replace("{l}", String(_params[i]->getValueLength()));
         pitem.replace("{v}", _params[i]->getValue());
         pitem.replace("{c}", "");    // Add additional attributes if needed
+      }
+      else
+      {
+        // Handle custom parameter (or any derived class)
+        CustomWiFiManagerParameter* customParam = static_cast<CustomWiFiManagerParameter*>(_params[i]);
+
+        pitem = FPSTR(HTTP_FORM_CUSTOM_PARAM);    // Use custom HTML template
+        pitem.replace("{id}", customParam->getID());
+        if(customParam->getLabel())
+        {
+          pitem.replace("{label}", customParam->getLabel());
+        }
+        else
+        {
+          pitem.replace("{label}", "");
+        }
+        pitem.replace("{html}", customParam->getCustomHTML());    // Inject the custom HTML
       }
 
       // Add label if required (before or after)

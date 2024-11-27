@@ -34,8 +34,9 @@
 #define UTILS_H
 
 #include <Arduino.h>
-#include <customWiFiManager.h>
+#include <Preferences.h>
 #include <customParameter.h>
+#include <customWiFiManager.h>
 #include <esp_task_wdt.h>
 #include <vector>
 
@@ -69,7 +70,11 @@ class Utils
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
   static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
 
+  static constexpr const char* SWITCH_NIGHT_LIGHT = "sw_nightLight";
+  static constexpr const char* SWITCH_MOTION_ACTIVATED = "sw_motionAct";
+
   static CustomWiFiManager wm;
+  static Preferences preferences;
 
   Utils(int buttonPin) { this->buttonPin = buttonPin; }
   static bool begin(void);
@@ -79,7 +84,6 @@ class Utils
   static bool isDaylightSavingTime() { return dst_offset != 0; }
   static Country getCountry() { return country; }
   static bool getConnectionState() { return connectionState; }    // True if connected to WiFi
-  static void resetSettings() { wm.resetSettings(); }
   static void resetWatchdog() { esp_task_wdt_reset(); }
   static bool getButtonShortPressEvent(bool clearFlag = true)
   {
@@ -95,6 +99,14 @@ class Utils
       longPressEvent = false;
     return temp;
   }
+  static void resetSettings()
+  {
+    wm.resetSettings();
+    preferences.clear();
+  }
+
+  static bool getNightLight() { return pref_nightLight; }
+  static bool getMotionActivated() { return pref_motionActivated; }
 
  private:
   static const char* resetReasons[];
@@ -113,14 +125,14 @@ class Utils
   static bool shortPressEvent;
   static bool longPressEvent;
 
-  static ParameterSwitch switch_1;
-  static ParameterSwitch switch_2;
-  static ParameterSwitch switch_3;
-
-  static WiFiManagerParameter regular_parameter;
+  static ParameterSwitch switch_nightLight;
+  static ParameterSwitch switch_motionActivated;
   static CustomWiFiManagerParameter time_interval_slider;
-  static CustomWiFiManagerParameter switch_parameter;
 
+  static bool pref_nightLight;
+  static bool pref_motionActivated;
+
+  static void loadPreferences();
   static bool startWiFiManager();
   static bool getOffsetFromWorldTimeAPI();
   static bool getOffsetFromIpapi();
@@ -131,6 +143,23 @@ class Utils
   static bool updateTimeZoneOffset();
   static void updateTask(void* pvParameter);
   static void timerISR(void);
+
+  static std::vector<const char*> menuItems;
+  static constexpr const char* icon =
+    "<link rel='icon' type='image/png' "
+    "href='data:image/"
+    "png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADQElEQVRoQ+2YjW0VQQyE7Q6gAkgFkAogFUAqgFQAVACpAKiAUAFQAaECQgWECggVGH1PPrRvn3dv9/"
+    "YkFOksoUhhfzwz9ngvKrc89JbnLxuA/63gpsCmwCADWwkNEji8fVNgotDM7osI/"
+    "x777x5l9F6JyB8R4eeVql4P0y8yNsjM7KGIPBORp558T04A+CwiH1UVUItiUQmZ2XMReSEiAFgjAPBeVS96D+sCYGaUx4cFbLfmhSpnqnrZuqEJgJnd8cQplVLciAgX//"
+    "Cf0ToIeOB9wpmloLQAwpnVmAXgdf6pwjpJIz+XNoeZQQZlODV9vhc1Tuf6owrAk/"
+    "8qIhFbJH7eI3eEzsvydQEICqBEkZwiALfF70HyHPpqScPV5HFjeFu476SkRA0AzOfy4hYwstj2ZkDgaphE7m6XqnoS7Q0BOPs/"
+    "sw0kDROzjdXcCMFCNwzIy0EcRcOvBACfh4k0wgOmBX4xjfmk4DKTS31hgNWIKBCI8gdzogTgjYjQWFMw+o9LzJoZ63GUmjWm2wGDc7EvDDOj/"
+    "1IVMIyD9SUAL0WEhpriRlXv5je5S+U1i2N88zdPuoVkeB+ls4SyxCoP3kVm9jsjpEsBLoOBNC5U9SwpGdakFkviuFP1keblATkTENTYcxkzgxTKOI3jyDxqLkQT87pMA++"
+    "H3XvJBYtsNbBN6vuXq5S737WqHkW1VgMQNXJ0RshMqbbT33sJ5kpHWymzcJjNTeJIymJZtSQd9NHQHS1vodoFoTMkfbJzpRnLzB2vi6BZAJxWaCr+62BC+"
+    "jzAxVJb3dmmiLzLwZhZNPE5e880Suo2AZgB8e8idxherqUPnT3brBDTlPxO3Z66rVwIwySXugdNd+5ejhqp/"
+    "+NmgIwGX3Py3QBmlEi54KlwmjkOytQ+iJrLJj23S4GkOeecg8G091no737qvRRdzE+"
+    "HLALQoMTBbJgBsCj5RSWUlUVJiZ4SOljb05eLFWgoJ5oY6yTyJp62D39jDANoKKcSocPJD5dQYzlFAFZJflUArgTPZKZwLXAnHmerfJquUkKZEgyzqOb5TuDt1P3nwxobqwPocZA11m4A1mB"
+    "x5IxNgRH21ti7KbAGiyNn3HoF/gJ0w05A8xclpwAAAABJRU5ErkJggg==' />";
 };
 
 #endif

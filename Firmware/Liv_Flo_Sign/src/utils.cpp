@@ -9,6 +9,7 @@
 #include "esp_wifi.h"
 
 CustomWiFiManager Utils::wm(console.log);
+Preferences Utils::preferences;
 Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
@@ -19,12 +20,16 @@ bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
 bool Utils::timezoneValid = false;
 bool Utils::tryReconnect = false;
-String Utils::resetReason = "Unknown";
+String Utils::resetReason = "Not set";
 
-ParameterSwitch Utils::switch_1("switch_1", "Switch 1", true);
-ParameterSwitch Utils::switch_2("switch_2", "Switch 2", false);
-ParameterSwitch Utils::switch_3("switch_3", "Switch 3", false);
+bool Utils::pref_nightLight = false;
+bool Utils::pref_motionActivated = false;
 
+ParameterSwitch Utils::switch_nightLight("switch_nightLight", "Night Light");
+ParameterSwitch Utils::switch_motionActivated("switch_motionActivated", "Motion Activated");
+
+
+std::vector<const char*> Utils::menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
 
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
@@ -106,42 +111,6 @@ CustomWiFiManagerParameter Utils::time_interval_slider(
   "</script>");
 
 
-CustomWiFiManagerParameter Utils::switch_parameter(
-  "enable_feature",    // ID
-  nullptr,             // Label
-  "1",                 // Default (1 for enabled, 0 for disabled)
-  1,                   // Length
-  "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>"
-  "<style>"
-  "label { font-family: Verdana, sans-serif; font-size: 1em; margin: 5px 0; }"
-  ".custom-wrapper, .switch-wrapper { padding: 0; }"    // Added this line
-  ".switch-wrapper { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }"
-  ".switch { position: relative; display: inline-block; width: 50px; height: 24px; }"
-  ".switch input { opacity: 0; width: 0; height: 0; }"
-  ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: "
-  "24px; }"
-  ".slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.4s; "
-  "border-radius: 50%; }"
-  "input:checked + .slider { background-color: #007bff; }"
-  "input:checked + .slider:before { transform: translateX(26px); }"
-  "</style>"
-  "<div class='switch-wrapper'>"
-  "<label for='enable_feature_checkbox'>Enable Feature</label>"    // Label is left-aligned
-  "<label class='switch'>"
-  "<input type='checkbox' id='enable_feature_checkbox' value='1' checked>"
-  "<span class='slider'></span>"
-  "</label>"                                                                     // Switch is right-aligned
-  "<input type='hidden' id='enable_feature' name='enable_feature' value='1'>"    // Hidden input to pass the correct value
-  "</div>"
-  "<script>"
-  "const checkbox = document.getElementById('enable_feature_checkbox');"
-  "const hiddenInput = document.getElementById('enable_feature');"
-  "checkbox.addEventListener('change', function() {"
-  "  hiddenInput.value = this.checked ? '1' : '0';"    // Dynamically update hidden input based on checkbox state
-  "});"
-  "</script>");
-
-
 const char* colorPickerHTML =
   "<!DOCTYPE html><html><head>"
   "<meta charset='utf-8'>"
@@ -157,14 +126,18 @@ const char* colorPickerHTML =
   "</body></html>";
 
 
-WiFiManagerParameter Utils::regular_parameter("regular_parameter", "Regular Parameter", "Default Value", 16);
-
-
 bool Utils::begin(void)
 {
   pinMode(buttonPin, INPUT_PULLUP);
   resetReason = String(resetReasons[esp_reset_reason()]);
   console.log.printf("[UTILS] Reset reason: %s\n", resetReason);    // Panic, Watchdog is bad
+
+  if(!preferences.begin("preferences", false))
+  {
+    console.error.println("[UTILS] Failed to open preferences");
+    return false;
+  }
+  loadPreferences();
 
   connectionState = false;
   xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);    // Stack Watermark: 4672
@@ -173,7 +146,6 @@ bool Utils::begin(void)
   timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
   timerAlarmWrite(Timer0_Cfg, 1000000 / BUTTON_TIMER_RATE, true);
   timerAlarmEnable(Timer0_Cfg);
-
   return true;
 }
 
@@ -183,40 +155,18 @@ bool Utils::startWiFiManager()
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.setSleep(false);
   WiFi.mode(WIFI_STA);    // explicitly set mode, esp defaults to STA+AP
+
   wm.setConfigPortalBlocking(false);
   wm.setConnectTimeout(0);
-  static std::vector<const char*> menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
-  static const char* headhtml =
-    "<link rel='icon' type='image/png' "
-    "href='data:image/"
-    "png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADQElEQVRoQ+2YjW0VQQyE7Q6gAkgFkAogFUAqgFQAVACpAKiAUAFQAaECQgWECggVGH1PPrRvn3dv9/"
-    "YkFOksoUhhfzwz9ngvKrc89JbnLxuA/63gpsCmwCADWwkNEji8fVNgotDM7osI/"
-    "x777x5l9F6JyB8R4eeVql4P0y8yNsjM7KGIPBORp558T04A+CwiH1UVUItiUQmZ2XMReSEiAFgjAPBeVS96D+sCYGaUx4cFbLfmhSpnqnrZuqEJgJnd8cQplVLciAgX//"
-    "Cf0ToIeOB9wpmloLQAwpnVmAXgdf6pwjpJIz+XNoeZQQZlODV9vhc1Tuf6owrAk/"
-    "8qIhFbJH7eI3eEzsvydQEICqBEkZwiALfF70HyHPpqScPV5HFjeFu476SkRA0AzOfy4hYwstj2ZkDgaphE7m6XqnoS7Q0BOPs/"
-    "sw0kDROzjdXcCMFCNwzIy0EcRcOvBACfh4k0wgOmBX4xjfmk4DKTS31hgNWIKBCI8gdzogTgjYjQWFMw+o9LzJoZ63GUmjWm2wGDc7EvDDOj/"
-    "1IVMIyD9SUAL0WEhpriRlXv5je5S+U1i2N88zdPuoVkeB+ls4SyxCoP3kVm9jsjpEsBLoOBNC5U9SwpGdakFkviuFP1keblATkTENTYcxkzgxTKOI3jyDxqLkQT87pMA++"
-    "H3XvJBYtsNbBN6vuXq5S737WqHkW1VgMQNXJ0RshMqbbT33sJ5kpHWymzcJjNTeJIymJZtSQd9NHQHS1vodoFoTMkfbJzpRnLzB2vi6BZAJxWaCr+62BC+"
-    "jzAxVJb3dmmiLzLwZhZNPE5e880Suo2AZgB8e8idxherqUPnT3brBDTlPxO3Z66rVwIwySXugdNd+5ejhqp/"
-    "+NmgIwGX3Py3QBmlEi54KlwmjkOytQ+iJrLJj23S4GkOeecg8G091no737qvRRdzE+"
-    "HLALQoMTBbJgBsCj5RSWUlUVJiZ4SOljb05eLFWgoJ5oY6yTyJp62D39jDANoKKcSocPJD5dQYzlFAFZJflUArgTPZKZwLXAnHmerfJquUkKZEgyzqOb5TuDt1P3nwxobqwPocZA11m4A1mB"
-    "x5IxNgRH21ti7KbAGiyNn3HoF/gJ0w05A8xclpwAAAABJRU5ErkJggg==' />";
-  wm.setCustomHeadElement(headhtml);
+  wm.setCustomHeadElement(icon);
   wm.setMenu(menuItems);
   wm.setDarkMode(true);
   wm.setDebugOutput(true, WM_DEBUG_ERROR);    // For Debugging us: WM_DEBUG_VERBOSE
   wm.setConfigPortalSSID(Device::getDeviceName());
   wm.startWebPortal();
 
-  // time_interval_slider.setValue("00:00-02:00", 16);    // Allocate enough space for the value
-  // wm.addParameter(&time_interval_slider);
-
-  wm.addParameter(&regular_parameter);
-  wm.addParameter(&switch_parameter);
-  wm.addParameter(&switch_1.param);
-  wm.addParameter(&switch_2.param);
-  wm.addParameter(&switch_3.param);
-
+  wm.addParameter(&switch_nightLight);
+  wm.addParameter(&switch_motionActivated);
 
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
@@ -225,34 +175,32 @@ bool Utils::startWiFiManager()
 
 void Utils::saveParamsCallback()
 {
-  Serial.println("[UTILS] Saving parameters");
+  console.log.println("[UTILS] Saving parameters");
 
-  // Retrieve parameters from WiFiManager
-  WiFiManagerParameter** params = wm.getParameters();
-  int numParams = wm.getParametersCount();
-  Serial.printf("[UTILS] Parameter count: %d\n", numParams);
-
-  for(int i = 0; i < numParams; i++)
+  pref_nightLight = switch_nightLight.getValue();
+  if(pref_nightLight != preferences.getBool(SWITCH_NIGHT_LIGHT))
   {
-    if(params[i] != nullptr && params[i]->getID() != nullptr)
-    {
-      Serial.printf("[UTILS] Parameter ID: %s, Value: %s\n", params[i]->getID(), params[i]->getValue());
-    }
-    else
-    {
-      Serial.printf("[UTILS] Parameter at index %d is null or uninitialized\n", i);
-    }
+    preferences.putBool(SWITCH_NIGHT_LIGHT, pref_nightLight);
+    switch_nightLight.setValue(pref_nightLight);
+    console.log.printf("  Night Light: %d\n", pref_nightLight);
   }
 
-  // Specifically check for the time_interval parameter
-  if(time_interval_slider.getValue() != nullptr)
+  pref_motionActivated = switch_motionActivated.getValue();
+  if(pref_motionActivated != preferences.getBool(SWITCH_MOTION_ACTIVATED))
   {
-    Serial.printf("[UTILS] Time Interval: %s\n", time_interval_slider.getValue());
+    preferences.putBool(SWITCH_MOTION_ACTIVATED, pref_motionActivated);
+    switch_motionActivated.setValue(pref_motionActivated);
+    console.log.printf("  Motion Activated: %d\n", pref_motionActivated);
   }
-  else
-  {
-    Serial.println("[UTILS] Time Interval parameter is null or uninitialized");
-  }
+}
+
+void Utils::loadPreferences()
+{
+  pref_nightLight = preferences.getBool(SWITCH_NIGHT_LIGHT, false);
+  switch_nightLight.setValue(pref_nightLight);
+
+  pref_motionActivated = preferences.getBool(SWITCH_MOTION_ACTIVATED, false);
+  switch_motionActivated.setValue(pref_motionActivated);
 }
 
 
