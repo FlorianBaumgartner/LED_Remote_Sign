@@ -257,6 +257,9 @@ void DisplayMatrix::updateTask(void)
     case DisplayMatrix::SHOW_IP:
       scrollMessage(ipAddress, 0xFFFFFF);
       break;
+    case DisplayMatrix::PORTAL_ACTIVE:
+      scrollMessage("Connect to: 192.168.4.1", 0x00FFFF);
+      break;
     case DisplayMatrix::UPDATING:
       if(updatePercentage != oldPercentage)
       {

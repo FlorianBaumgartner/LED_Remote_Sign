@@ -57,14 +57,6 @@ void App::appTask(void* pvParameter)
   while(true)
   {
     TickType_t task_last_tick = xTaskGetTickCount();
-
-    // static int t = 0;
-    // if(millis() - t > 500)
-    // {
-    //   t = millis();
-    //   console.log.printf("Free Heap: %d, Max Heap: %d\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
-    // }
-
     if(!app->booting)
     {
       if(app->utils.getConnectionState())
@@ -150,12 +142,21 @@ void App::appTask(void* pvParameter)
     }
 
     uint8_t brightness = map(app->sensor.getAmbientBrightness(), 0, 255, 0, app->disp.MAX_BRIGHTNESS);
-    brightness = brightness < 3 ? 0 : brightness;
-    app->disp.setBrightness(brightness);    // Turn off display for very low brightness (colors get distorted)
-    app->sign.setBrightness(brightness);
+    if(brightness < NIGHT_LIGHT_MODE_MIN)
+    {
+      app->sign.setNightMode(Utils::getNightLight());    // Enable night mode if user has set it
+      app->sign.setBrightness(NIGHT_LIGHT_MODE_MIN);
+      app->disp.setBrightness(0);    // Turn off display for low brightness environments
+    }
+    else
+    {
+      app->sign.setNightMode(false);
+      app->sign.setBrightness(brightness);
+      app->disp.setBrightness(brightness);    // Turn off display for very low brightness (colors get distorted)
+    }
 
     app->utils.resetWatchdog();
-    vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(1000 / app->APP_UPDATE_RATE));
+    vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(1000 / APP_UPDATE_RATE));
   }
 }
 

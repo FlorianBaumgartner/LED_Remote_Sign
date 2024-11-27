@@ -165,8 +165,14 @@ bool Utils::startWiFiManager()
   wm.setConfigPortalSSID(Device::getDeviceName());
   wm.startWebPortal();
 
+  // TODO: Label for Settings
   wm.addParameter(&switch_nightLight);
   wm.addParameter(&switch_motionActivated);
+
+  // TODO: Slider Motion Activation Time
+
+  // Color Hue for Idle Text
+  // Color Hue for Night Light
 
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);

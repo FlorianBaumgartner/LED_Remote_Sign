@@ -35,17 +35,18 @@
 
 #include <Arduino.h>
 #include "discord.h"
-#include "githubOTA.h"
 #include "displayMatrix.h"
 #include "displaySign.h"
+#include "githubOTA.h"
 #include "sensor.h"
 #include "utils.h"
 
 class App
 {
  public:
-  static constexpr const float APP_UPDATE_RATE = 10.0;     // [Hz]
-  static constexpr const float LED_UPDATE_RATE = 30.0;    // [Hz]
+  static constexpr const float APP_UPDATE_RATE = 10.0;        // [Hz]
+  static constexpr const float LED_UPDATE_RATE = 30.0;        // [Hz]
+  static constexpr const uint8_t NIGHT_LIGHT_MODE_MIN = 3;    // Below/Equal this value the night light is enabled
 
   static constexpr const float IP_ADDRESS_SHOW_TIME = 7.0;    // [s]
 

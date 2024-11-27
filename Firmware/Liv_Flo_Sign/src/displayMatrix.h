@@ -53,6 +53,7 @@ class DisplayMatrix
     IDLE,
     DISCONNECTED,
     SHOW_IP,
+    PORTAL_ACTIVE,
     UPDATING
   };
 

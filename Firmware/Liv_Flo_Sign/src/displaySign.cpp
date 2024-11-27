@@ -103,6 +103,11 @@ void DisplaySign::begin(float updateRate)
   pixels.show();
 }
 
+void DisplaySign::setBrightness(uint8_t brightness)
+{
+  pixels.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness);
+}
+
 void DisplaySign::updateTask(void)
 {
   if(booting)
@@ -129,16 +134,15 @@ void DisplaySign::updateTask(void)
   static uint32_t framecount = 0;
   framecount++;
 
-  uint32_t t = millis();
-  animationSine(framecount, eventFlag);
-  t = millis() - t;
-
-  // static int u = 0;
-  // if(millis() - u > 1000)
-  // {
-  //   console.log.printf("[DISP_SIG] Frame time: %d ms\n", t);
-  //   u = millis();
-  // }
+  if(nightMode)
+  {
+    animationNightMode(framecount, eventFlag);
+  }
+  else
+  {
+    // TODO: Add Switch for different animations
+    animationSine(framecount, eventFlag);
+  }
 }
 
 
@@ -167,9 +171,16 @@ void DisplaySign::animationBooting(void)
   pixels.show();
 }
 
+void DisplaySign::animationNightMode(uint32_t framecount, bool eventFlag)
+{
+  pixels.clear();
+  pixels.fill(nightLightColor, 101, 48);    // Only heart is lit
+  pixels.show();
+}
+
 void DisplaySign::animationSine(uint32_t framecount, bool eventFlag)
 {
-  const float speed = 0.65;         // [Hz]
+  const float speed = 0.65;        // [Hz]
   const float wavelength = 2.5;    // Wavelength of the sine wave
   const uint8_t high_color[3] = {0xFF, 0x08, 0x08};
   const uint8_t low_color[3] = {0xFF, 0x54, 0x00};    // Match Python colors

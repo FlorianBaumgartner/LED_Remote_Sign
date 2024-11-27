@@ -44,16 +44,18 @@ class DisplaySign
   static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 120;
   static constexpr const uint32_t BOOT_ANIMATION_COLOR = 0xFC5400;
+  static constexpr const uint32_t NIGHT_MODE_COLOR = 0xFC5400;
 
 
   DisplaySign(uint8_t pin, int count) : pixels(count, pin, NEO_GRB + NEO_KHZ800) {}
 
   void begin(float updateRate = 30);
   void updateTask(void);
-  void setBrightness(uint8_t brightness) { pixels.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
+  void setBrightness(uint8_t brightness);
   void enable(bool en) { enabled = en; }
   bool getBootStatus() { return booting; }
   void setEvent(bool status) { event = status; }
+  void setNightMode(bool status) { nightMode = status; }
 
 
  private:
@@ -61,11 +63,16 @@ class DisplaySign
   uint8_t updatePercentage = 0;
   float updateRate = 30;
   bool enabled = false;
+  bool nightMode = false;
   bool booting = true;
   bool event = false;
 
+  uint32_t nightLightColor = NIGHT_MODE_COLOR;
+
   void animationBooting(void);
+  void animationNightMode(uint32_t framecount, bool eventFlag);
   void animationSine(uint32_t framecount, bool eventFlag);
+
 
   static const float canvas_center[2];
   static const float square_coordinates[268][2];
