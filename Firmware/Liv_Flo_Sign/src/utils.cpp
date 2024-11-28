@@ -20,6 +20,7 @@ bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
 bool Utils::timezoneValid = false;
 bool Utils::tryReconnect = false;
+bool Utils::clientConnectedToPortal = false;
 String Utils::resetReason = "Not set";
 
 std::vector<const char*> Utils::menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
@@ -160,12 +161,12 @@ bool Utils::startWiFiManager()
   // TODO: Slider Motion Activation Time
   wm.addParameter(&colorPicker_primaryColor);
   // TODO: Dropdown for Animation Type
-  
+
   wm.addParameter(&title_nightLight);
   wm.addParameter(&switch_nightLight);
   wm.addParameter(&colorPicker_nightLightColor);
-  
-  
+
+
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
   return true;
@@ -224,26 +225,48 @@ void Utils::loadPreferences()
 }
 
 
-bool Utils::reconnectWiFi(int retries, bool verbose)
+Utils::ClientConnection Utils::isClientConnected(IPAddress* ipAddress)
 {
   if(WiFi.softAPgetStationNum() > 0)    // Abort if someone has already connected to the device (AP)
   {
     std::vector<IPAddress> clientIPs = getConnectedClientIPs(5);
-    for(IPAddress ip : clientIPs)
+    for(IPAddress ip : clientIPs)   // Check all connected clients if they are reachable
     {
-      const int retryCount = 10;
-      for(int i = 0; i < retryCount; i++)
+      if(Ping.ping(ip))
       {
-        if(Ping.ping(ip))
+        if(ipAddress)
         {
-          console.warning.printf("[UTILS] Aborting reconnect: Client connected to portal: %s\n", ip.toString().c_str());
-          return false;
+          *ipAddress = ip;
         }
-        console.warning.printf("[UTILS] Failed to ping client: %s, retrying...\n", ip.toString().c_str());
-        delay(500);
+        return ClientConnection::Connected;
       }
     }
+    return ClientConnection::NoPing;
   }
+  return ClientConnection::None;
+}
+
+
+bool Utils::reconnectWiFi(int retries, bool verbose)
+{
+  const int retryCount = 10;
+  for(int i = 0; i < retryCount; i++)
+  {
+    IPAddress ip;
+    switch(isClientConnected(&ip))
+    {
+      case ClientConnection::None:
+        break;  // No client connected, we can restart the WiFiManager to reconnect to known network
+      case ClientConnection::Connected:
+        console.warning.printf("[UTILS] Aborting reconnect: Client connected to portal: %s\n", ip.toString().c_str());
+        return false;
+      case ClientConnection::NoPing:
+        console.warning.printf("[UTILS] Failed to ping client: %s, retrying...\n", ip.toString().c_str());
+        delay(500);
+        break;
+    }
+  }
+
   bool res = false;
   wm.setConnectRetries(retries);
   wm.setWiFiAutoReconnect(false);    // We handle the reconnection ourselves
@@ -445,6 +468,7 @@ void Utils::updateTask(void* pvParameter)
         console.ok.println("[UTILS] Connected to WiFi");
         static bool firstRun = true;
         tryReconnect = false;
+        clientConnectedToPortal = false;
         tConnected = millis();
 
         static wifi_country_t myCountry;
@@ -479,6 +503,16 @@ void Utils::updateTask(void* pvParameter)
       {
         tryReconnect = true;
         console.warning.println("[UTILS] Disconnected from WiFi");
+      }
+
+      if(!connectionState)    // While not connected to WiFi, check if clients have connected to the AP
+      {
+        static int tClient = 0;
+        if(millis() - tClient > CLIENT_PING_INTERVAL * 1000)
+        {
+          tClient = millis();
+          clientConnectedToPortal = isClientConnected() == ClientConnection::Connected;
+        }
       }
 
       if(millis() > 10000)    // Wait 10s after booting before checking for a disconnected IP

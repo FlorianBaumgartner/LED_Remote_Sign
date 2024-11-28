@@ -114,8 +114,8 @@ void App::appTask(void* pvParameter)
       }
       else
       {
-        app->disp.setState(DisplayMatrix::DISCONNECTED);
         app->sign.enable(false);
+        app->disp.setState(Utils::isClientConnectedToPortal()? DisplayMatrix::PORTAL_ACTIVE : DisplayMatrix::DISCONNECTED);
       }
     }
 

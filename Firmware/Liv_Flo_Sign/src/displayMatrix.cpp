@@ -235,14 +235,13 @@ void DisplayMatrix::setUpdatePercentage(int percentage)
 void DisplayMatrix::updateTask(void)
 {
   static State lastState = (State)-1;
-
   if(state != lastState)
   {
     resetScrollPosition = true;    // Force a reset of the scroll position
   }
   lastState = state;
 
-  static uint8_t oldPercentage = 0;
+  static uint8_t oldPercentage = -1;
   switch(state)
   {
     case DisplayMatrix::BOOTING:
@@ -258,7 +257,7 @@ void DisplayMatrix::updateTask(void)
       scrollMessage(ipAddress, 0xFFFFFF);
       break;
     case DisplayMatrix::PORTAL_ACTIVE:
-      scrollMessage("Connect to: 192.168.4.1", 0x00FFFF);
+      scrollMessage("Portal: 192.168.4.1", 0xFFFF00);
       break;
     case DisplayMatrix::UPDATING:
       if(updatePercentage != oldPercentage)
@@ -267,6 +266,7 @@ void DisplayMatrix::updateTask(void)
         if(updatePercentage == 100)
         {
           scrollMessage("Done!", 0x00FF00);
+          oldPercentage = -1;   // Reset the old percentage (not really necessary, since we reboot anyway)
         }
         else if(updatePercentage >= 0)
         {

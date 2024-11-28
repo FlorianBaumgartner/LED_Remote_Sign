@@ -64,11 +64,19 @@ class Utils
     Unknown = -1
   };
 
+  enum ClientConnection
+  {
+    None = 0,
+    Connected = 1,
+    NoPing = 2,
+  };
+
   static constexpr const float UTILS_UPDATE_RATE = 2.0;           // [Hz]  Interval to check for internet connection and time update
   static constexpr const float WIFI_RECONNECT_INTERVAL = 60.0;    // [s]  Interval to reconnect to WiFi
   static constexpr const float BUTTON_TIMER_RATE = 100.0;         // [Hz]  Timer rate for button press detection
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
-  static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
+  static constexpr const size_t TIMEZONE_UPDATE_INTERVAL = 60;    // [s]  Interval to update the time zone offset
+  static constexpr const size_t CLIENT_PING_INTERVAL = 3;         // [s]  Interval to ping connected clients
 
   static constexpr const bool PREF_DEF_NIGHT_LIGHT = false;                 // Default night light state
   static constexpr const bool PREF_DEF_MOTION_ACTIVATED = false;            // Default motion activated state
@@ -89,6 +97,7 @@ class Utils
   static String getResetReason() { return resetReason; }
   static uint32_t getUnixTime();                      // GMT+0000
   static bool getCurrentTime(struct tm& timeinfo);    // Local time
+  static bool isClientConnectedToPortal() { return clientConnectedToPortal; }
   static bool isDaylightSavingTime() { return dst_offset != 0; }
   static Country getCountry() { return country; }
   static bool getConnectionState() { return connectionState; }    // True if connected to WiFi
@@ -128,6 +137,7 @@ class Utils
   static int32_t dst_offset;
   static bool timezoneValid;
   static bool tryReconnect;
+  static bool clientConnectedToPortal;
 
   static bool connectionState;
   static int buttonPin;
@@ -159,6 +169,7 @@ class Utils
   static std::vector<IPAddress> getConnectedClientIPs(int maxCount = -1);
 
   static void saveParamsCallback();
+  static ClientConnection isClientConnected(IPAddress* ipAddress = nullptr);
   static bool reconnectWiFi(int retries = 1, bool verbose = false);
   static bool updateTimeZoneOffset();
   static void updateTask(void* pvParameter);
