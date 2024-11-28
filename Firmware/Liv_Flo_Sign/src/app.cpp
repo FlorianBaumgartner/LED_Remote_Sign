@@ -39,7 +39,7 @@ bool App::begin()
 {
   disp.setTextColor(Utils::getPrimaryColor());
   sign.setBootColor(Utils::getPrimaryColor());
-
+  sign.setNightLightColor(Utils::getNightLightColor());
 
   discord.begin();
   githubOTA.begin();
@@ -162,6 +162,7 @@ void App::appTask(void* pvParameter)
 
     // Allways apply current settings to modules
     app->disp.setTextColor(Utils::getPrimaryColor());
+    app->sign.setNightLightColor(Utils::getNightLightColor());
 
     app->utils.resetWatchdog();
     vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(1000 / APP_UPDATE_RATE));

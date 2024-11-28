@@ -77,7 +77,7 @@ class DisplayMatrix
   String currentMessage = "";
   String newMessage = "";
   String ipAddress = "";
-  uint32_t textColor = 0xFFFFFF;
+  uint32_t textColor = 0;
   int scrollPosition = matrix.width();
   int textWidth = 0;
   bool scrollTextNecessary = true;

@@ -29,10 +29,15 @@ const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   
 bool Utils::pref_nightLight = false;
 bool Utils::pref_motionActivated = false;
 uint32_t Utils::pref_primaryColor = 0x000000;
+uint32_t Utils::pref_nightLightColor = 0x000000;
+
+CustomWiFiManagerParameter Utils::title_generalSettings(nullptr, nullptr, nullptr, 0, "<h2>General Settings<h2><hr>", WFM_NO_LABEL);
+CustomWiFiManagerParameter Utils::title_nightLight(nullptr, nullptr, nullptr, 0, "<br><h2>Night Light<h2><hr>", WFM_NO_LABEL);
 
 ParameterSwitch Utils::switch_nightLight(SWITCH_NIGHT_LIGHT, "Night Light");
 ParameterSwitch Utils::switch_motionActivated(SWITCH_MOTION_ACTIVATED, "Motion Activated");
 ParameterColorPicker Utils::colorPicker_primaryColor(COLOR_PICKER_PRIMARY_COLOR, "Primary Color");
+ParameterColorPicker Utils::colorPicker_nightLightColor(COLOR_PICKER_NIGHT_LIGHT_COLOR, "Night Light Color");
 
 
 CustomWiFiManagerParameter Utils::time_interval_slider(
@@ -150,16 +155,17 @@ bool Utils::startWiFiManager()
   wm.setConfigPortalSSID(Device::getDeviceName());
   wm.startWebPortal();
 
-  // TODO: Label for Settings
-  wm.addParameter(&switch_nightLight);
+  wm.addParameter(&title_generalSettings);
   wm.addParameter(&switch_motionActivated);
-  wm.addParameter(&colorPicker_primaryColor);
-
   // TODO: Slider Motion Activation Time
-
-
-  // Color Hue for Night Light
-
+  wm.addParameter(&colorPicker_primaryColor);
+  // TODO: Dropdown for Animation Type
+  
+  wm.addParameter(&title_nightLight);
+  wm.addParameter(&switch_nightLight);
+  wm.addParameter(&colorPicker_nightLightColor);
+  
+  
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
   return true;
@@ -192,6 +198,14 @@ void Utils::saveParamsCallback()
     colorPicker_primaryColor.setValue(pref_primaryColor);
     console.log.printf("  Primary Color: %06X\n", pref_primaryColor);
   }
+
+  pref_nightLightColor = colorPicker_nightLightColor.getValue();
+  if(pref_nightLightColor != preferences.getUInt(COLOR_PICKER_NIGHT_LIGHT_COLOR))
+  {
+    preferences.putUInt(COLOR_PICKER_NIGHT_LIGHT_COLOR, pref_nightLightColor);
+    colorPicker_nightLightColor.setValue(pref_nightLightColor);
+    console.log.printf("  Night Light Color: %06X\n", pref_nightLightColor);
+  }
 }
 
 void Utils::loadPreferences()
@@ -204,6 +218,9 @@ void Utils::loadPreferences()
 
   pref_primaryColor = preferences.getUInt(COLOR_PICKER_PRIMARY_COLOR, PREF_DEF_PRIMARY_COLOR);
   colorPicker_primaryColor.setValue(pref_primaryColor);
+
+  pref_nightLightColor = preferences.getUInt(COLOR_PICKER_NIGHT_LIGHT_COLOR, PREF_DEF_NIGHT_LIGHT_COLOR);
+  colorPicker_nightLightColor.setValue(pref_nightLightColor);
 }
 
 

@@ -763,18 +763,12 @@ String CustomWiFiManager::getParamOut()
 
         pitem = FPSTR(HTTP_FORM_CUSTOM_PARAM);    // Use custom HTML template
         pitem.replace("{id}", customParam->getID());
-        if(customParam->getLabel())
-        {
-          pitem.replace("{label}", customParam->getLabel());
-        }
-        else
-        {
-          pitem.replace("{label}", "");
-        }
         pitem.replace("{html}", customParam->getCustomHTML());    // Inject the custom HTML
       }
 
       // Add label if required (before or after)
+
+      page += "<h3>";
       switch(_params[i]->getLabelPlacement())
       {
         case WFM_LABEL_BEFORE:
@@ -796,6 +790,7 @@ String CustomWiFiManager::getParamOut()
           page += pitem;
           break;
       }
+      page += "</h3>";
     }
   }
 

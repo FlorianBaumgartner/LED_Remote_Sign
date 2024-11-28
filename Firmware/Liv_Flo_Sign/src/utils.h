@@ -70,13 +70,16 @@ class Utils
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
   static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
 
-  static constexpr const bool PREF_DEF_NIGHT_LIGHT = false;             // Default night light state
-  static constexpr const bool PREF_DEF_MOTION_ACTIVATED = false;        // Default motion activated state
-  static constexpr const uint32_t PREF_DEF_PRIMARY_COLOR = 0xFC5400;    // Default text color
+  static constexpr const bool PREF_DEF_NIGHT_LIGHT = false;                 // Default night light state
+  static constexpr const bool PREF_DEF_MOTION_ACTIVATED = false;            // Default motion activated state
+  static constexpr const uint32_t PREF_DEF_PRIMARY_COLOR = 0xFC5400;        // Default text color
+  static constexpr const uint32_t PREF_DEF_NIGHT_LIGHT_COLOR = 0xFC0000;    // Default night light color
 
+  // Parameter IDs (Max 15 Characters)
   static constexpr const char* SWITCH_NIGHT_LIGHT = "sw_nightLight";
   static constexpr const char* SWITCH_MOTION_ACTIVATED = "sw_motionAct";
   static constexpr const char* COLOR_PICKER_PRIMARY_COLOR = "cp_primColor";
+  static constexpr const char* COLOR_PICKER_NIGHT_LIGHT_COLOR = "cp_nLigColor";
 
   static CustomWiFiManager wm;
   static Preferences preferences;
@@ -108,11 +111,13 @@ class Utils
   {
     wm.resetSettings();
     preferences.clear();
+    loadPreferences();    // Load default preferences
   }
 
   static bool getNightLight() { return pref_nightLight; }
   static bool getMotionActivated() { return pref_motionActivated; }
   static uint32_t getPrimaryColor() { return pref_primaryColor; }
+  static uint32_t getNightLightColor() { return pref_nightLightColor; }
 
  private:
   static const char* resetReasons[];
@@ -131,15 +136,21 @@ class Utils
   static bool shortPressEvent;
   static bool longPressEvent;
 
+  static CustomWiFiManagerParameter title_generalSettings;
+  static CustomWiFiManagerParameter title_nightLight;
+
   static ParameterSwitch switch_nightLight;
   static ParameterSwitch switch_motionActivated;
   static ParameterColorPicker colorPicker_primaryColor;
+  static ParameterColorPicker colorPicker_nightLightColor;
+
 
   static CustomWiFiManagerParameter time_interval_slider;
 
   static bool pref_nightLight;
   static bool pref_motionActivated;
   static uint32_t pref_primaryColor;
+  static uint32_t pref_nightLightColor;
 
   static void loadPreferences();
   static bool startWiFiManager();
