@@ -39,8 +39,7 @@
 class ParameterSwitch : public CustomWiFiManagerParameter
 {
  public:
-  ParameterSwitch(const char* id, const char* label, bool defaultValue = 0)
-      : CustomWiFiManagerParameter(id, label, nullptr, 1, nullptr, WFM_NO_LABEL)
+  ParameterSwitch(const char* id, const char* label, bool defaultValue = 0) : CustomWiFiManagerParameter(id, label, nullptr, 1, nullptr, WFM_NO_LABEL)
   {
     setValue(defaultValue);
   }
@@ -90,6 +89,53 @@ class ParameterSwitch : public CustomWiFiManagerParameter
     "  });"
     "});"
     "</script>";
+};
+
+
+class ParameterColorPicker : public CustomWiFiManagerParameter
+{
+ public:
+  ParameterColorPicker(const char* id, const char* label, uint32_t defaultValue = 0xFF0000)
+      : CustomWiFiManagerParameter(id, label, nullptr, 7, nullptr, WFM_NO_LABEL)
+  {
+    setValue(defaultValue);
+  }
+
+  uint32_t getValue()
+  {
+    const char* val = WiFiManagerParameter::getValue();
+    return strtoul(val + 1, nullptr, 16);    // Convert hex string (skip '#') to uint32_t
+  }
+
+  void setValue(uint32_t value)
+  {
+    char hexColor[8];                                        // 6 digits + null terminator
+    snprintf(hexColor, sizeof(hexColor), "#%06X", value);    // Convert uint32_t to hex string
+    html = String(htmlTemplate);
+    html.replace("{label}", _label);      // Replace {label} with the label
+    html.replace("{id}", _id);            // Replace {id} with the unique ID
+    html.replace("{value}", hexColor);    // Replace {value} with the current color value
+    setCustomHTML(html.c_str());
+  }
+
+ private:
+  String html;    // Store the HTML to ensure it stays in scope
+
+  static constexpr const char* htmlTemplate =
+    "<style>"
+    "label { font-family: Verdana, sans-serif; font-size: 1em; margin: 10px 0; padding: 0; }"
+    ".color-picker-wrapper { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 0; }"
+    ".color-picker-container { position: relative; overflow: hidden; width: 50px; height: 24px; "
+    "border: 2px solid #ddd; border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }"    // Rectangular container with rounded corners
+    ".color-picker { position: absolute; top: -16px; right: -8px; width: 70px; height: 40px; "
+    "border: none; cursor: pointer; }"    // Larger input to ensure smooth clicking
+    "</style>"
+    "<div class='color-picker-wrapper'>"
+    "<label for='{id}'>{label}</label>"    // Label for the color picker
+    "<div class='color-picker-container'>"
+    "<input type='color' class='color-picker' id='{id}' name='{id}' value='{value}'>"    // Color picker input
+    "</div>"
+    "</div>";
 };
 
 

@@ -37,6 +37,10 @@
 
 bool App::begin()
 {
+  disp.setTextColor(Utils::getPrimaryColor());
+  sign.setBootColor(Utils::getPrimaryColor());
+
+
   discord.begin();
   githubOTA.begin();
   sensor.begin();
@@ -155,6 +159,9 @@ void App::appTask(void* pvParameter)
       app->sign.setBrightness(brightness);
       app->disp.setBrightness(brightness);    // Turn off display for very low brightness (colors get distorted)
     }
+
+    // Allways apply current settings to modules
+    app->disp.setTextColor(Utils::getPrimaryColor());
 
     app->utils.resetWatchdog();
     vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(1000 / APP_UPDATE_RATE));

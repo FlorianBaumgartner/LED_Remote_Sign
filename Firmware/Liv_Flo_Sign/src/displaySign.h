@@ -43,7 +43,6 @@ class DisplaySign
  public:
   static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 120;
-  static constexpr const uint32_t BOOT_ANIMATION_COLOR = 0xFC5400;
   static constexpr const uint32_t NIGHT_MODE_COLOR = 0xFC0000;
 
 
@@ -56,6 +55,8 @@ class DisplaySign
   bool getBootStatus() { return booting; }
   void setEvent(bool status) { event = status; }
   void setNightMode(bool status) { nightMode = status; }
+  void setBootColor(uint32_t color) { bootColor = color; }
+  void setNightLightColor(uint32_t color) { nightLightColor = color; }
 
 
  private:
@@ -67,6 +68,7 @@ class DisplaySign
   bool booting = true;
   bool event = false;
 
+  uint32_t bootColor = 0xFFFFFF;
   uint32_t nightLightColor = NIGHT_MODE_COLOR;
 
   void animationBooting(void);

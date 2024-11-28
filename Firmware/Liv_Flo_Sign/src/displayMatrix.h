@@ -43,7 +43,6 @@ class DisplayMatrix
  public:
   static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 120;
-  static constexpr const uint32_t TEXT_DEFAULT_COLOR = 0xFC5400;
   static constexpr const float TEXT_BLANK_SPACE_TIME = 0.5;    // [s]  Time to wait before scrolling the next message
 
 
@@ -65,6 +64,7 @@ class DisplayMatrix
   void updateTask(void);
   void setBrightness(uint8_t brightness) { matrix.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
   void setState(State newState) { state = newState; }
+  void setTextColor(uint32_t color) { textColor = color; }
   void setUpdatePercentage(int percentage);
   void setMessage(const String& msg) { newMessage = msg; }
   void setIpAdress(const String& ipAddr) { ipAddress = ipAddr; }
@@ -77,8 +77,7 @@ class DisplayMatrix
   String currentMessage = "";
   String newMessage = "";
   String ipAddress = "";
-  uint32_t textColor = TEXT_DEFAULT_COLOR;
-  uint32_t textColorNew = TEXT_DEFAULT_COLOR;
+  uint32_t textColor = 0xFFFFFF;
   int scrollPosition = matrix.width();
   int textWidth = 0;
   bool scrollTextNecessary = true;

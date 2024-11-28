@@ -157,7 +157,7 @@ void DisplaySign::animationBooting(void)
     bool rampState = pos < pixels.numPixels();
     if((rampState && i < pos) || (!rampState && i >= pos - pixels.numPixels()))
     {
-      pixels.setPixelColor(i, BOOT_ANIMATION_COLOR);
+      pixels.setPixelColor(i, bootColor);
     }
   }
   if(pos < pixels.numPixels() * 2)

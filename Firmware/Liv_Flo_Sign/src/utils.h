@@ -70,8 +70,13 @@ class Utils
   static constexpr const float BUTTON_LONG_PRESS_TIME = 5.0;      // [s]  Time to hold the button for a long press
   static constexpr const int TIMEZONE_UPDATE_INTERVAL = 60;       // [s]  Interval to update the time zone offset
 
+  static constexpr const bool PREF_DEF_NIGHT_LIGHT = false;             // Default night light state
+  static constexpr const bool PREF_DEF_MOTION_ACTIVATED = false;        // Default motion activated state
+  static constexpr const uint32_t PREF_DEF_PRIMARY_COLOR = 0xFC5400;    // Default text color
+
   static constexpr const char* SWITCH_NIGHT_LIGHT = "sw_nightLight";
   static constexpr const char* SWITCH_MOTION_ACTIVATED = "sw_motionAct";
+  static constexpr const char* COLOR_PICKER_PRIMARY_COLOR = "cp_primColor";
 
   static CustomWiFiManager wm;
   static Preferences preferences;
@@ -107,6 +112,7 @@ class Utils
 
   static bool getNightLight() { return pref_nightLight; }
   static bool getMotionActivated() { return pref_motionActivated; }
+  static uint32_t getPrimaryColor() { return pref_primaryColor; }
 
  private:
   static const char* resetReasons[];
@@ -127,10 +133,13 @@ class Utils
 
   static ParameterSwitch switch_nightLight;
   static ParameterSwitch switch_motionActivated;
+  static ParameterColorPicker colorPicker_primaryColor;
+
   static CustomWiFiManagerParameter time_interval_slider;
 
   static bool pref_nightLight;
   static bool pref_motionActivated;
+  static uint32_t pref_primaryColor;
 
   static void loadPreferences();
   static bool startWiFiManager();

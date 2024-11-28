@@ -246,7 +246,7 @@ void DisplayMatrix::updateTask(void)
   switch(state)
   {
     case DisplayMatrix::BOOTING:
-      scrollMessage(Device::getDeviceName() + String(" - v") + String(FIRMWARE_VERSION), TEXT_DEFAULT_COLOR, 1);    // Scroll Booting message only once
+      scrollMessage(Device::getDeviceName() + String(" - v") + String(FIRMWARE_VERSION), textColor, 1);    // Scroll Booting message only once
       break;
     case DisplayMatrix::IDLE:
       scrollMessage(newMessage, textColor);

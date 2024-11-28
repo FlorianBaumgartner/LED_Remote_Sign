@@ -79,7 +79,7 @@ const char HTTP_FORM_LABEL[] PROGMEM = "<label for='{i}'>{t}</label>";
 const char HTTP_FORM_PARAM_HEAD[] PROGMEM = "<hr><br/>";
 const char HTTP_FORM_PARAM[] PROGMEM = "<br/><input id='{i}' name='{n}' maxlength='{l}' value='{v}' {c}>\n";    // do not remove newline!
 
-const char HTTP_FORM_CUSTOM_PARAM[] PROGMEM = "<br/>{html}<input type='hidden' id='{id}' name='{id}' value='{v}'>\n";
+const char HTTP_FORM_CUSTOM_PARAM[] PROGMEM = "{html}<input type='hidden' id='{id}' name='{id}' value='{v}'>\n";
 
 
 const char HTTP_SCAN_LINK[] PROGMEM = "<br/><form action='/wifi?refresh=1' method='POST'><button name='refresh' value='1'>Refresh</button></form>";

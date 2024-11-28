@@ -22,17 +22,17 @@ bool Utils::timezoneValid = false;
 bool Utils::tryReconnect = false;
 String Utils::resetReason = "Not set";
 
-bool Utils::pref_nightLight = false;
-bool Utils::pref_motionActivated = false;
-
-ParameterSwitch Utils::switch_nightLight("switch_nightLight", "Night Light");
-ParameterSwitch Utils::switch_motionActivated("switch_motionActivated", "Motion Activated");
-
-
 std::vector<const char*> Utils::menuItems = {"wifi", "param", "info", "sep", "update"};    // Don't display "Exit" in the menu
-
 const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   "Software", "Panic", "Interrupt Watchdog",
                                      "Task Watchdog", "Watchdog", "Deep Sleep", "Brownout", "SDIO"};
+
+bool Utils::pref_nightLight = false;
+bool Utils::pref_motionActivated = false;
+uint32_t Utils::pref_primaryColor = 0x000000;
+
+ParameterSwitch Utils::switch_nightLight(SWITCH_NIGHT_LIGHT, "Night Light");
+ParameterSwitch Utils::switch_motionActivated(SWITCH_MOTION_ACTIVATED, "Motion Activated");
+ParameterColorPicker Utils::colorPicker_primaryColor(COLOR_PICKER_PRIMARY_COLOR, "Primary Color");
 
 
 CustomWiFiManagerParameter Utils::time_interval_slider(
@@ -111,21 +111,6 @@ CustomWiFiManagerParameter Utils::time_interval_slider(
   "</script>");
 
 
-const char* colorPickerHTML =
-  "<!DOCTYPE html><html><head>"
-  "<meta charset='utf-8'>"
-  "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-  "<title>ESP Color Picker</title>"
-  "<script src='https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js'></script>"
-  "</head><body>"
-  "<h1>RGB Color Picker</h1>"
-  "<form action='/color' method='GET'>"
-  "<input class='jscolor' name='rgb' value='FFFFFF'>"
-  "<input type='submit' value='Set Color'>"
-  "</form>"
-  "</body></html>";
-
-
 bool Utils::begin(void)
 {
   pinMode(buttonPin, INPUT_PULLUP);
@@ -168,10 +153,11 @@ bool Utils::startWiFiManager()
   // TODO: Label for Settings
   wm.addParameter(&switch_nightLight);
   wm.addParameter(&switch_motionActivated);
+  wm.addParameter(&colorPicker_primaryColor);
 
   // TODO: Slider Motion Activation Time
 
-  // Color Hue for Idle Text
+
   // Color Hue for Night Light
 
   wm.setSaveParamsCallback(saveParamsCallback);
@@ -198,15 +184,26 @@ void Utils::saveParamsCallback()
     switch_motionActivated.setValue(pref_motionActivated);
     console.log.printf("  Motion Activated: %d\n", pref_motionActivated);
   }
+
+  pref_primaryColor = colorPicker_primaryColor.getValue();
+  if(pref_primaryColor != preferences.getUInt(COLOR_PICKER_PRIMARY_COLOR))
+  {
+    preferences.putUInt(COLOR_PICKER_PRIMARY_COLOR, pref_primaryColor);
+    colorPicker_primaryColor.setValue(pref_primaryColor);
+    console.log.printf("  Primary Color: %06X\n", pref_primaryColor);
+  }
 }
 
 void Utils::loadPreferences()
 {
-  pref_nightLight = preferences.getBool(SWITCH_NIGHT_LIGHT, false);
+  pref_nightLight = preferences.getBool(SWITCH_NIGHT_LIGHT, PREF_DEF_NIGHT_LIGHT);
   switch_nightLight.setValue(pref_nightLight);
 
-  pref_motionActivated = preferences.getBool(SWITCH_MOTION_ACTIVATED, false);
+  pref_motionActivated = preferences.getBool(SWITCH_MOTION_ACTIVATED, PREF_DEF_MOTION_ACTIVATED);
   switch_motionActivated.setValue(pref_motionActivated);
+
+  pref_primaryColor = preferences.getUInt(COLOR_PICKER_PRIMARY_COLOR, PREF_DEF_PRIMARY_COLOR);
+  colorPicker_primaryColor.setValue(pref_primaryColor);
 }
 
 
