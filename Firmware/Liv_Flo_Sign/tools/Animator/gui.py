@@ -11,7 +11,7 @@ import time
 
 # Global scaling factor: 1 mm = 3.779527559 pixels (based on 96 dpi, 1 inch = 25.4 mm)
 MM_TO_PIXELS = 3.779527559
-FRAME_RATE_MS = 1000 // 30  # 30 Hz (33ms per frame)
+FRAME_RATE = 30  # 30 Hz
 
 class Canvas(QWidget):
     def __init__(self):
@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         # Load components from CPL file
         LED_Matrix, LED_Sign = get_components()
 
-        Animation(LED_Sign)
+        Animation(LED_Sign, FRAME_RATE)
 
         # Set LED_Matrix squares to black (off)
         for component in LED_Matrix:
@@ -120,16 +120,17 @@ class MainWindow(QMainWindow):
         # Timer for 30 Hz update (animation)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(FRAME_RATE_MS)
+        self.timer.start(1000 // FRAME_RATE)
 
         self.index = 0
 
     def update_frame(self):
         self.index += 1
 
-        self.color = Animation.sine(self.index, self.color, self.canvas.get_trigger())
+        # self.color = Animation.sine(self.index, self.color, self.canvas.get_trigger())
         # self.color = Animation.trigger_test(self.index, self.color, self.canvas.get_trigger())
         # self.color = Animation.sprinkle(self.index, self.color, self.canvas.get_trigger())
+        self.color = Animation.newMessage(self.index, self.color, self.canvas.get_trigger())
 
         self.canvas.update_squares(self.color)
         self.canvas.update()  # Repaint the canvas

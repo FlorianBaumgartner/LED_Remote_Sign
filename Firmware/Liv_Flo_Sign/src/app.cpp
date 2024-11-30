@@ -37,15 +37,15 @@
 
 bool App::begin()
 {
-  disp.setTextColor(Utils::getPrimaryColor());
-  sign.setBootColor(Utils::getPrimaryColor());
+  disp.setTextColor(Utils::getTextColor());
+  sign.setBootColor(Utils::getTextColor());
   sign.setNightLightColor(Utils::getNightLightColor());
 
   discord.begin();
   githubOTA.begin();
   sensor.begin();
-  disp.begin();
-  sign.begin();
+  disp.begin(LED_UPDATE_RATE);
+  sign.begin(LED_UPDATE_RATE);
 
   static String bootMessage = "BOOT " + Device::getDeviceName() + ": v" + String(FIRMWARE_VERSION) + " (" + utils.getResetReason() + ")";
   discord.sendEvent(bootMessage.c_str());
@@ -115,29 +115,11 @@ void App::appTask(void* pvParameter)
       else
       {
         app->sign.enable(false);
-        app->disp.setState(Utils::isClientConnectedToPortal()? DisplayMatrix::PORTAL_ACTIVE : DisplayMatrix::DISCONNECTED);
+        app->disp.setState(Utils::isClientConnectedToPortal() ? DisplayMatrix::PORTAL_ACTIVE : DisplayMatrix::DISCONNECTED);
       }
     }
 
-    if(app->sensor.getProxEvent())
-    {
-      console.log.println("[APP] Proximity Event");
-      app->discord.sendEvent("PROXIMITY");
-    }
-
-    if(app->discord.newEventAvailable())
-    {
-      String event;
-      if(app->discord.getLatestEvent(event))
-      {
-        app->sign.setEvent(event == "PROXIMITY");
-      }
-    }
-    else
-    {
-      app->sign.setEvent(false);
-    }
-
+    // Check for boot status
     static bool once = true;
     if(!app->sign.getBootStatus() && once)
     {
@@ -145,12 +127,64 @@ void App::appTask(void* pvParameter)
       app->booting = false;
     }
 
+    // Check for activation triggers
+    bool motionTrigger = false;            // Trigger is set only once and gets cleared otherswise
+    bool eventTrigger = false;             // Trigger is set only once and gets cleared otherswise
+    static bool newMessageFlag = false;    // Flag stays active until the user triggers motion event
+    static bool initialMessageReceived = false;
+    if(app->sensor.getProxEvent())
+    {
+      console.log.println("[APP] Proximity Event");
+      motionTrigger = true;
+      if(!newMessageFlag)    // When the user wakes up the sign to see the message, don't send event
+      {
+        app->discord.sendEvent("PROXIMITY");
+      }
+      if(!Utils::getMotionActivated())    // Only trigger animation when not in motion activation mode
+      {
+        eventTrigger = true;
+      }
+      newMessageFlag = false;    // Reset new message flag when the user activates the sign
+    }
+    if(app->discord.newMessageAvailable())
+    {
+      if(initialMessageReceived)    // Don't trigger event on first message
+      {
+        newMessageFlag = true;
+      }
+      else
+      {
+        motionTrigger = true;    // When initial message is received, trigger motion event to display message
+      }
+      initialMessageReceived = true;
+    }
+    if(app->discord.newEventAvailable())
+    {
+      String event;
+      if(app->discord.getLatestEvent(event))
+      {
+        if(event == "PROXIMITY")
+        {
+          eventTrigger = true;    // When event is received, only trigger event animation (has no effect when motion activation is enabled)
+        }
+      }
+    }
+    app->sign.setEvent(eventTrigger);
+    app->sign.setNewMessage(newMessageFlag);
+    app->sign.setMotionEvent(motionTrigger);    // Trigger to activate the sign
+    app->sign.setMotionActivation(Utils::getMotionActivated());
+    app->sign.setMotionEventTime(Utils::getMotionActivationTime());
+    app->disp.setMotionEvent(motionTrigger);
+    app->disp.setMotionActivation(Utils::getMotionActivated());
+    app->disp.setMotionEventTime(Utils::getMotionActivationTime());
+
+    // Set brightness and night mode
     uint8_t brightness = map(app->sensor.getAmbientBrightness(), 0, 255, 0, app->disp.MAX_BRIGHTNESS);
     if(brightness < NIGHT_LIGHT_MODE_MIN)
     {
       bool nightMode = Utils::getNightLight();
       app->sign.setNightMode(nightMode);    // Enable night mode if user has set it
-      app->sign.setBrightness(nightMode? NIGHT_LIGHT_MODE_MIN : 0);
+      app->sign.setBrightness(nightMode ? NIGHT_LIGHT_MODE_MIN : 0);
       app->disp.setBrightness(0);    // Turn off display for low brightness environments
     }
     else
@@ -161,8 +195,11 @@ void App::appTask(void* pvParameter)
     }
 
     // Allways apply current settings to modules
-    app->disp.setTextColor(Utils::getPrimaryColor());
+    app->disp.setTextColor(Utils::getTextColor());
     app->sign.setNightLightColor(Utils::getNightLightColor());
+    app->sign.setAnimationType(Utils::getAnimationType());
+    app->sign.setAnimationPrimaryColor(Utils::getAnimationPrimaryColor());
+    app->sign.setAnimationSecondaryColor(Utils::getAnimationSecondaryColor());
 
     app->utils.resetWatchdog();
     vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(1000 / APP_UPDATE_RATE));

@@ -41,44 +41,66 @@
 class DisplaySign
 {
  public:
-  static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 120;
+  static constexpr const size_t EVENT_ANIMATION_DURATION = 10;    // [s]  Time to show event animation
+
+  static const char* const ANIMATION_NAMES[];
+  static const size_t ANIMATION_COUNT;
 
 
   DisplaySign(uint8_t pin, int count) : pixels(count, pin, NEO_GRB + NEO_KHZ800) {}
 
   void begin(float updateRate = 30);
   void updateTask(void);
-  void setBrightness(uint8_t brightness);
+  void setBrightness(uint8_t val) { brightness = constrain(val, 0, MAX_BRIGHTNESS); }
   void enable(bool en) { enabled = en; }
   bool getBootStatus() { return booting; }
-  void setEvent(bool status) { event = status; }
+  void setEvent(bool status) { eventTimestamp = status ? millis() + EVENT_ANIMATION_DURATION * 1000 : eventTimestamp; }
+  void setMotionActivation(bool status) { motionActivation = status; }
+  void setMotionEvent(bool status) { motionActiveTimestamp = status ? millis() + motionEventTime * 1000 : motionActiveTimestamp; }
+  void setMotionEventTime(uint32_t time) { motionEventTime = time; }
+  void setNewMessage(bool status) { newMessageFlag = status; }
   void setNightMode(bool status) { nightMode = status; }
   void setBootColor(uint32_t color) { bootColor = color; }
   void setNightLightColor(uint32_t color) { nightLightColor = color; }
+  void setAnimationType(uint8_t type) { animationType = constrain(type, 0, ANIMATION_COUNT - 1); }
+  void setAnimationPrimaryColor(uint32_t color) { animationPrimaryColor = color; }
+  void setAnimationSecondaryColor(uint32_t color) { animationSecondaryColor = color; }
 
 
  private:
   Adafruit_NeoPixel pixels;
   uint8_t updatePercentage = 0;
   float updateRate = 30;
+  uint8_t brightness = 0;
   bool enabled = false;
   bool nightMode = false;
   bool booting = true;
-  bool event = false;
+  bool motionActivation = false;
+  bool newMessageFlag = false;
+  uint32_t motionActiveTimestamp = 0;
+  uint32_t motionEventTime = 0;
+  uint32_t eventTimestamp = 0;
 
+  uint32_t framecount = 0;
+  uint8_t animationType = 0;
   uint32_t bootColor = 0;
   uint32_t nightLightColor = 0;
+  uint32_t animationPrimaryColor = 0;
+  uint32_t animationSecondaryColor = 0;
 
   void animationBooting(void);
+  void animationNewMessage(uint32_t framecount, bool eventFlag);
+  void animationOff(uint32_t framecount, bool eventFlag);
   void animationNightMode(uint32_t framecount, bool eventFlag);
-  void animationSine(uint32_t framecount, bool eventFlag);
+  void animationWave(uint32_t framecount, bool eventFlag);
+  void animationHeart(uint32_t framecount, bool eventFlag);
 
 
   static const float canvas_center[2];
   static const float square_coordinates[268][2];
   static const float canvas_min_max_x[2];
-  static const int16_t cos_lut[360];  // Cosine lookup table for values between -1 and 1 scaled to an integer range [-1000, 1000]
+  static const int16_t cos_lut[360];    // Cosine lookup table for values between -1 and 1 scaled to an integer range [-1000, 1000]
 
   float mapf(float x, float in_min, float in_max, float out_min, float out_max)
   {

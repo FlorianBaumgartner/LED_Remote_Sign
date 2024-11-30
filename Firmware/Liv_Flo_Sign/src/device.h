@@ -35,10 +35,10 @@
 
 #include <Arduino.h>
 
-#define LIV_FLO_SIGN_0            "D4E2D49E9EF0"    // Flo's sign (based in the appartment)
-#define LIV_FLO_SIGN_1            "CCD0D49E9EF0"    // Flo's sign (based in the lab)
-#define LIV_FLO_SIGN_2            "3C17D29E9EF0"    // Liv's sign ()
-#define LIV_FLO_SIGN_3            "50FCD49E9EF0"    // Liv's sign ()
+#define LIV_FLO_SIGN_0            "D4E2D49E9EF0"    // Liv's sign (ZHdK)
+#define LIV_FLO_SIGN_1            "CCD0D49E9EF0"    // Liv's sign (bedroom)
+#define LIV_FLO_SIGN_2            "3C17D29E9EF0"    // Flo's sign (development unit)
+#define LIV_FLO_SIGN_3            "50FCD49E9EF0"    // Flo's sign (bedroom)
 #define LIV_FLO_SIGN_4            "309ED59E9EF0"    // Backup
 
 #define ESP32C3_DEV_BOARD_RGB_LED "AC6EBB03F784"

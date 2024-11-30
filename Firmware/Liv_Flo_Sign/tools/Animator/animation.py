@@ -3,8 +3,9 @@ import time
 
 
 class Animation:
-    def __init__(self, squares):
+    def __init__(self, squares, framerate):
         Animation.squares = squares
+        Animation.framerate = framerate
         Animation.canvas_center_x = 64.35
         Animation.canvas_center_y = 70.5
         Animation.canvas_min_x = min([square['PosX'] for square in squares])
@@ -116,19 +117,35 @@ class Animation:
         return color
 
 
-    # @staticmethod
-    # def slow_sine(framecount, color, trigger):
-    #     speed = 5            # one ramp per n frames
-    #     number_of_groups = 3
-    #     high_color = [0xFF, 0x00, 0xFF]
-    #     low_color = [0xFF, 0xA0, 0x00]
+    @staticmethod
+    def newMessage(framecount, color, trigger):
+        speed = 1.75           # Higher value = slower movement; lower value = faster
+        wait_time = 3         # Seconds to wait after the tail completes
+        tail_length = 10       # Maximum number of LEDs in the tail
+        decay_factor = 0.8    # Exponential decay factor for tail brightness
+        high_color = [0xFF, 0xFF, 0xFF]  # High color for the tail
+        frame_rate = 30       # Assume a frame rate (replace with Animation.framerate)
+        
+        # Total frames to complete one cycle (moving across + wait time)
+        cycle_frames = len(color) / speed + int(wait_time * frame_rate)
+        
+        # Calculate position within the cycle
+        position_in_cycle = int(framecount % cycle_frames * speed)
+        
+        # Iterate over LEDs in the color array
+        for i in range(len(color)):
+            if position_in_cycle < len(color):  # Moving phase
+                if i == position_in_cycle:  # Current position of the tail
+                    color[i] = high_color
+                elif position_in_cycle - i > 0 and position_in_cycle - i <= tail_length:  # Tail section
+                    decay = decay_factor ** (position_in_cycle - i - 1)  # Exponential decay
+                    brightness = max(int(255 * decay), 0)  # Ensure non-negative values
+                    color[i] = [brightness] * 3
+                else:  # LEDs not yet reached by the tail
+                    color[i] = [0, 0, 0]
+            else:  # Waiting phase
+                color[i] = [0, 0, 0]
 
-    #     for i in range(len(color)):
-    #         group = i % number_of_groups
-    #         val = np.sin((framecount + i * speed) * 0.05)
-    #         color[i] = [
-    #             int(Animation.map(val, -1, 1, low_color[0], high_color[0])),
-    #             int(Animation.map(val, -1, 1, low_color[1], high_color[1])),
-    #             int(Animation.map(val, -1, 1, low_color[2], high_color[2]))
-    #         ]
-    #     return color
+        return color
+
+

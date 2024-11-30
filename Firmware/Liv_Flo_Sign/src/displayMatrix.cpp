@@ -43,7 +43,7 @@ void DisplayMatrix::begin(float updateRate)
   matrix.setTextSize(1);
   matrix.setFont(&Grand9K_Pixel8pt7bModified);
   matrix.setTextWrap(false);
-  matrix.setBrightness(DEFAULT_BRIGHNESS);
+  matrix.setBrightness(0);
   matrix.setTextColor(matrix.Color(0, 0, 255));
   matrix.fillScreen(0);
   matrix.show();
@@ -155,7 +155,7 @@ bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
   }
   if(!found)
   {
-    const uint32_t blackList[] = {0xFE0F, 0x1F3FB};
+    const uint32_t blackList[] = {0xFE0F, 0x1F3FB};    // E.g. Skin tone modifiers
     bool blackListed = false;
     for(int i = 0; i < sizeof(blackList) / sizeof(blackList[0]); i++)
     {
@@ -178,9 +178,6 @@ bool DisplayMatrix::drawEmoji(int x, int y, uint32_t unicode_index)
   matrix.setPassThruColor();
   return found;
 }
-
-
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;    // Declare the portMUX_TYPE globally or within the relevant scope
 
 void DisplayMatrix::scrollMessage(const String& msg, uint32_t color, int count)
 {
@@ -247,18 +244,28 @@ void DisplayMatrix::updateTask(void)
     case DisplayMatrix::BOOTING:
       scrollMessage(Device::getDeviceName() + String(" - v") + String(FIRMWARE_VERSION), textColor, 1);    // Scroll Booting message only once
       break;
+
     case DisplayMatrix::IDLE:
+      if(motionActivation && motionActiveTimestamp < millis())    // Turn off display while no motion is detected
+      {
+        scrollMessage("", 0);
+        break;
+      }
       scrollMessage(newMessage, textColor);
       break;
+
     case DisplayMatrix::DISCONNECTED:
       scrollMessage("No Connection ❌", 0xFF0000);
       break;
+
     case DisplayMatrix::SHOW_IP:
       scrollMessage(ipAddress, 0xFFFFFF);
       break;
+
     case DisplayMatrix::PORTAL_ACTIVE:
       scrollMessage("Portal: 192.168.4.1", 0xFFFF00);
       break;
+
     case DisplayMatrix::UPDATING:
       if(updatePercentage != oldPercentage)
       {
@@ -266,7 +273,7 @@ void DisplayMatrix::updateTask(void)
         if(updatePercentage == 100)
         {
           scrollMessage("Done!", 0x00FF00);
-          oldPercentage = -1;   // Reset the old percentage (not really necessary, since we reboot anyway)
+          oldPercentage = -1;    // Reset the old percentage (not really necessary, since we reboot anyway)
         }
         else if(updatePercentage >= 0)
         {

@@ -41,7 +41,6 @@
 class DisplayMatrix
 {
  public:
-  static constexpr const uint8_t DEFAULT_BRIGHNESS = 10;
   static constexpr const uint8_t MAX_BRIGHTNESS = 120;
   static constexpr const float TEXT_BLANK_SPACE_TIME = 0.5;    // [s]  Time to wait before scrolling the next message
 
@@ -64,6 +63,16 @@ class DisplayMatrix
   void updateTask(void);
   void setBrightness(uint8_t brightness) { matrix.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness); }
   void setState(State newState) { state = newState; }
+  void setMotionEvent(bool status)
+  {
+    if(status && motionActivation)    // Only take action when motion activation is enabled
+    {
+      motionActiveTimestamp = millis() + motionEventTime * 1000;
+      resetScrollPosition = true;    // Reset scroll position if motion activation is enabled, to start the message from the beginning
+    }
+  }
+  void setMotionEventTime(uint32_t time) { motionEventTime = time; }
+  void setMotionActivation(bool status) { motionActivation = status; }
   void setTextColor(uint32_t color) { textColor = color; }
   void setUpdatePercentage(int percentage);
   void setMessage(const String& msg) { newMessage = msg; }
@@ -84,6 +93,10 @@ class DisplayMatrix
   bool resetScrollPosition = false;
   float updateRate = 30;
   int messageScrollCount = 0;
+
+  uint32_t motionEventTime = 0;
+  uint32_t motionActiveTimestamp = 0;
+  bool motionActivation = false;
 
   size_t printMessage(const String& msg, uint32_t color, int offset = 0);
   bool drawEmoji(int x, int y, uint32_t unicode_index);

@@ -33,6 +33,9 @@
 #include "DisplaySign.h"
 #include "console.h"
 
+const char* const DisplaySign::ANIMATION_NAMES[] = {"OFF", "Wave", "Heart"};
+const size_t DisplaySign::ANIMATION_COUNT = sizeof(DisplaySign::ANIMATION_NAMES) / sizeof(DisplaySign::ANIMATION_NAMES[0]);
+
 constexpr const float DisplaySign::canvas_center[2] = {64.35, 70.5};
 constexpr const float DisplaySign::canvas_min_max_x[2] = {9.875, 132.65};
 constexpr const float DisplaySign::square_coordinates[268][2] = {
@@ -103,13 +106,10 @@ void DisplaySign::begin(float updateRate)
   pixels.show();
 }
 
-void DisplaySign::setBrightness(uint8_t brightness)
-{
-  pixels.setBrightness(brightness > MAX_BRIGHTNESS ? MAX_BRIGHTNESS : brightness);
-}
-
 void DisplaySign::updateTask(void)
 {
+  pixels.setBrightness(brightness);    // TODO: Apply brightness modifier
+
   if(booting)
   {
     animationBooting();
@@ -122,26 +122,47 @@ void DisplaySign::updateTask(void)
     return;
   }
 
-  static bool eventOld = false;
-  bool eventFlag = false;
-  if(event && !eventOld)
-  {
-    eventFlag = true;
-  }
-  eventOld = event;
-  event = false;
-
-  static uint32_t framecount = 0;
   framecount++;
+  bool eventActive = eventTimestamp > millis();
+  static bool newMessageFlagOld = false;
+  if(newMessageFlag && !newMessageFlagOld && motionActivation)    // Make sure the animation starts from the beginning
+  {
+    framecount = 0;
+  }
+  newMessageFlagOld = newMessageFlag;
 
   if(nightMode)
   {
-    animationNightMode(framecount, eventFlag);
+    animationNightMode(framecount, eventActive);
+    return;
   }
-  else
+  if(motionActivation)
   {
-    // TODO: Add Switch for different animations
-    animationSine(framecount, eventFlag);
+    if(newMessageFlag)
+    {
+      animationNewMessage(framecount, eventActive);
+      return;
+    }
+    else if(motionActiveTimestamp < millis())    // Skip turning off the display if an event is active
+    {
+      animationOff(framecount, eventActive);
+      return;
+    }
+  }
+
+  switch(animationType)
+  {
+    case 0:
+      animationOff(framecount, eventActive);
+      break;
+    case 1:
+      animationWave(framecount, eventActive);
+      break;
+    case 2:
+      animationHeart(framecount, eventActive);
+      break;
+    default:
+      break;
   }
 }
 
@@ -171,6 +192,67 @@ void DisplaySign::animationBooting(void)
   pixels.show();
 }
 
+void DisplaySign::animationNewMessage(uint32_t framecount, bool eventFlag)
+{
+  constexpr float speed = 2.0;           // Higher value = slower movement; lower value = faster
+  constexpr int wait_time = 3;           // Seconds to wait after the tail completes
+  constexpr int tail_length = 10;        // Maximum number of LEDs in the tail
+  constexpr float decay_factor = 0.8;    // Exponential decay factor for tail brightness
+  constexpr int frame_rate = 30;         // Assume a frame rate (replace with Animation.framerate)
+
+  static uint8_t tail_brightness[tail_length];    // Precompute tail brightness values (decay factor applied)
+  static bool initialized = false;
+
+  if(!initialized)
+  {
+    for(int i = 0; i < tail_length; i++)
+    {
+      tail_brightness[i] = static_cast<uint8_t>(255 * powf(decay_factor, i));
+    }
+    initialized = true;
+  }
+
+  uint8_t prim_red = (animationPrimaryColor >> 16) & 0xFF;
+  uint8_t prim_green = (animationPrimaryColor >> 8) & 0xFF;
+  uint8_t prim_blue = animationPrimaryColor & 0xFF;
+  const int total_leds = pixels.numPixels();
+  const int cycle_frames = static_cast<int>((total_leds + tail_length) / speed + wait_time * frame_rate);
+  int position_in_cycle = static_cast<int>(framecount % cycle_frames * speed);
+
+  for(int i = 0; i < total_leds; i++)
+  {
+    if(position_in_cycle < total_leds + tail_length)    // Moving and fading phases
+    {
+      if(i == position_in_cycle)    // Current position of the head
+      {
+        pixels.setPixelColor(i, pixels.Color(prim_red, prim_green, prim_blue));
+      }
+      else if(position_in_cycle - i > 0 && position_in_cycle - i <= tail_length)    // Tail section
+      {
+        int tail_index = position_in_cycle - i - 1;
+        uint8_t brightness = tail_brightness[tail_index];
+        pixels.setPixelColor(i, pixels.Color(prim_red * brightness / 255, prim_green * brightness / 255, prim_blue * brightness / 255));
+      }
+      else    // LEDs outside the tail
+      {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+      }
+    }
+    else    // Waiting phase
+    {
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+    }
+  }
+  pixels.show();
+}
+
+
+void DisplaySign::animationOff(uint32_t framecount, bool eventFlag)
+{
+  pixels.clear();
+  pixels.show();
+}
+
 void DisplaySign::animationNightMode(uint32_t framecount, bool eventFlag)
 {
   pixels.clear();
@@ -178,14 +260,27 @@ void DisplaySign::animationNightMode(uint32_t framecount, bool eventFlag)
   pixels.show();
 }
 
-void DisplaySign::animationSine(uint32_t framecount, bool eventFlag)
+void DisplaySign::animationWave(uint32_t framecount, bool eventFlag)
 {
-  const float speed = 0.65;        // [Hz]
-  const float wavelength = 2.5;    // Wavelength of the sine wave
-  const uint8_t high_color[3] = {0xFF, 0x08, 0x08};
-  const uint8_t low_color[3] = {0xFF, 0x54, 0x00};    // Match Python colors
+  float speed = 0.65;        // [Hz]
+  float wavelength = 2.5;    // Wavelength of the sine wave
   const float total_range_left = canvas_center[0] - canvas_min_max_x[0];
   const float total_range_right = canvas_min_max_x[1] - canvas_center[0];
+
+  uint8_t prim_red = (animationPrimaryColor >> 16) & 0xFF;
+  uint8_t prim_green = (animationPrimaryColor >> 8) & 0xFF;
+  uint8_t prim_blue = animationPrimaryColor & 0xFF;
+
+  uint8_t sec_red = (animationSecondaryColor >> 16) & 0xFF;
+  uint8_t sec_green = (animationSecondaryColor >> 8) & 0xFF;
+  uint8_t sec_blue = animationSecondaryColor & 0xFF;
+
+  if(eventFlag)
+  {
+    speed *= 5;
+    wavelength = 1;
+    sec_red = sec_green = sec_blue = 0;
+  }
 
   int16_t angle_offset = -fmodf(framecount * speed, 360);
   if(angle_offset < 0)
@@ -210,10 +305,17 @@ void DisplaySign::animationSine(uint32_t framecount, bool eventFlag)
     if(angle < 0)
       angle += 360;                  // Ensure angle is positive
     int16_t val = cos_lut[angle];    // LUT contains cosine values scaled to [-1000, 1000]
-    uint8_t red = low_color[0] + (val + 1000) * (high_color[0] - low_color[0]) / 2000;
-    uint8_t green = low_color[1] + (val + 1000) * (high_color[1] - low_color[1]) / 2000;
-    uint8_t blue = low_color[2] + (val + 1000) * (high_color[2] - low_color[2]) / 2000;
+    uint8_t red = sec_red + (val + 1000) * (prim_red - sec_red) / 2000;
+    uint8_t green = sec_green + (val + 1000) * (prim_green - sec_green) / 2000;
+    uint8_t blue = sec_blue + (val + 1000) * (prim_blue - sec_blue) / 2000;
     pixels.setPixelColor(i, pixels.Color(red, green, blue));
   }
+  pixels.show();
+}
+
+void DisplaySign::animationHeart(uint32_t framecount, bool eventFlag)
+{
+  // TODO: Implement heart animation
+  pixels.clear();
   pixels.show();
 }

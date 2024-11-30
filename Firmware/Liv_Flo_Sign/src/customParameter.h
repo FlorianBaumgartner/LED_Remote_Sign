@@ -69,7 +69,7 @@ class ParameterSwitch : public CustomWiFiManagerParameter
     "24px; }"
     ".slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.4s; "
     "border-radius: 50%; }"
-    "input:checked + .slider { background-color: #007bff; }"
+    "input:checked + .slider { background-color: #1fa3ec; }"
     "input:checked + .slider:before { transform: translateX(26px); }"
     "</style>"
     "<div class='switch-wrapper'>"
@@ -135,6 +135,123 @@ class ParameterColorPicker : public CustomWiFiManagerParameter
     "<div class='color-picker-container'>"
     "<input type='color' class='color-picker' id='{id}' name='{id}' value='{value}'>"    // Color picker input
     "</div>"
+    "</div>";
+};
+
+class ParameterSelect : public CustomWiFiManagerParameter
+{
+ public:
+  ParameterSelect(const char* id, const char* label, const char* const options[], size_t optionCount, size_t defaultIndex = 0)
+      : CustomWiFiManagerParameter(id, label, nullptr, 1, nullptr, WFM_LABEL_BEFORE), _options(options), _optionCount(optionCount)
+  {
+    setValue(defaultIndex);
+  }
+
+  size_t getValue()
+  {
+    const char* val = WiFiManagerParameter::getValue();
+    return atoi(val);    // Convert the stored value to an integer index
+  }
+
+  void setValue(size_t index)
+  {
+    if(index >= _optionCount)
+    {
+      index = 0;    // Ensure the index is within bounds
+    }
+
+    html = String(htmlTemplate);
+    html.replace("{id}", _id);    // Replace {id} with the unique ID
+
+    // Generate options HTML dynamically
+    String optionsHTML;
+    for(size_t i = 0; i < _optionCount; ++i)
+    {
+      optionsHTML += "<option value='" + String(i) + "'";
+      if(i == index)
+      {
+        optionsHTML += " selected";
+      }
+      optionsHTML += ">" + String(_options[i]) + "</option>";
+    }
+
+    html.replace("{options}", optionsHTML);    // Replace {options} with the generated HTML
+    setCustomHTML(html.c_str());
+  }
+
+ private:
+  const char* const* _options;    // Pointer to an array of constant strings
+  size_t _optionCount;            // Number of options
+  String html;                    // Store the HTML to ensure it stays in scope
+
+  static constexpr const char* htmlTemplate =
+    "<style>"
+    ".select-wrapper { display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; width: 100%; }"
+    ".select-container { position: relative; width: 100%; }"
+    ".custom-select { font-family: Verdana, sans-serif; font-size: 1em; padding: 4px 8px; border: 1px solid #ddd; border-radius: 5px; "
+    "box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background-color: #f9f9f9; width: 100%; box-sizing: border-box; }"
+    "</style>"
+    "<div class='select-wrapper'>"
+    "<div class='select-container'>"
+    "<select class='custom-select' id='{id}' name='{id}'>"
+    "{options}"    // Dynamic options insertion
+    "</select>"
+    "</div>"
+    "</div>";
+};
+
+
+class ParameterSlider : public CustomWiFiManagerParameter
+{
+ public:
+  ParameterSlider(const char* id, const char* label, int minValue, int maxValue, int defaultValue = 50, const char* postfix = "")
+      : CustomWiFiManagerParameter(id, label, nullptr, 5, nullptr, WFM_LABEL_BEFORE),
+        _minValue(minValue),
+        _maxValue(maxValue),
+        _defaultValue(defaultValue),
+        _postfix(postfix)
+  {
+    setValue(defaultValue);
+  }
+
+  int getValue() { return atoi(WiFiManagerParameter::getValue()); }
+
+  void setValue(int value)
+  {
+    value = constrain(value, _minValue, _maxValue);    // Ensure value is within bounds
+
+    html = String(htmlTemplate);
+    html.replace("{id}", _id);
+    html.replace("{min}", String(_minValue));
+    html.replace("{max}", String(_maxValue));
+    html.replace("{value}", String(value));
+    html.replace("{postfix}", _postfix);
+
+    setCustomHTML(html.c_str());
+  }
+
+ private:
+  int _minValue, _maxValue, _defaultValue;
+  const char* _postfix;
+  String html;
+
+  static constexpr const char* htmlTemplate =
+    "<style>"
+    ".slidecontainer { width: 100%; margin: 0; }"
+    ".basic-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #ddd; border: none; border-radius: 3px; outline: none; padding: "
+    "0; }"
+    ".basic-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #1fa3ec; "
+    "border-radius: 50%; cursor: pointer; }"
+    ".slider-value { font-family: Verdana, sans-serif; font-size: 0.85em; font-weight: 300; margin-top: 5px; text-align: left; color: #ddd; }"
+    "</style>"
+    "<div class='slidecontainer'>"
+    "<input type='range' class='basic-slider' id='{id}' name='{id}' min='{min}' max='{max}' value='{value}' />"
+    "<div class='slider-value'>Value: <span id='{id}_value'>{value}</span> {postfix}</div>"
+    "<script>"
+    "document.getElementById('{id}').addEventListener('input', function() {"
+    "  document.getElementById('{id}_value').innerText = this.value;"
+    "});"
+    "</script>"
     "</div>";
 };
 

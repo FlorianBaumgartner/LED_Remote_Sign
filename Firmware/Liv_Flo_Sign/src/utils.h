@@ -78,16 +78,24 @@ class Utils
   static constexpr const size_t TIMEZONE_UPDATE_INTERVAL = 60;    // [s]  Interval to update the time zone offset
   static constexpr const size_t CLIENT_PING_INTERVAL = 3;         // [s]  Interval to ping connected clients
 
-  static constexpr const bool PREF_DEF_NIGHT_LIGHT = false;                 // Default night light state
-  static constexpr const bool PREF_DEF_MOTION_ACTIVATED = false;            // Default motion activated state
-  static constexpr const uint32_t PREF_DEF_PRIMARY_COLOR = 0xFC5400;        // Default text color
-  static constexpr const uint32_t PREF_DEF_NIGHT_LIGHT_COLOR = 0xFC0000;    // Default night light color
+  static constexpr const bool PREF_DEF_NIGHT_LIGHT = false;                         // Default night light state
+  static constexpr const bool PREF_DEF_MOTION_ACTIVATED = false;                    // Default motion activated state
+  static constexpr const uint32_t PREF_DEF_MOTION_ACTIVATION_TIME = 15;             // Default motion activation time [s]
+  static constexpr const uint32_t PREF_DEF_TEXT_COLOR = 0xFC5400;                   // Default text color
+  static constexpr const uint32_t PREF_DEF_NIGHT_LIGHT_COLOR = 0xFC0000;            // Default night light color
+  static constexpr const uint8_t PREF_DEF_ANIMATION_TYPE = 1;                       // Default animation type is "Wave"
+  static constexpr const uint32_t PREF_DEF_ANIMATION_PRIMARY_COLOR = 0xFF5400;      // Default primary color
+  static constexpr const uint32_t PREF_DEF_ANIMATION_SECONDARY_COLOR = 0xFF0808;    // Default secondary color
 
   // Parameter IDs (Max 15 Characters)
   static constexpr const char* SWITCH_NIGHT_LIGHT = "sw_nightLight";
   static constexpr const char* SWITCH_MOTION_ACTIVATED = "sw_motionAct";
-  static constexpr const char* COLOR_PICKER_PRIMARY_COLOR = "cp_primColor";
+  static constexpr const char* SLIDER_MOTION_ACTIVATION_TIME = "sli_motActTime";
+  static constexpr const char* COLOR_PICKER_TEXT_COLOR = "cp_textColor";
   static constexpr const char* COLOR_PICKER_NIGHT_LIGHT_COLOR = "cp_nLigColor";
+  static constexpr const char* ANIMATION_TYPE = "sel_anType";
+  static constexpr const char* ANIMATION_PRIMARY_COLOR = "cp_anPrimColor";
+  static constexpr const char* ANIMATION_SECONDARY_COLOR = "cp_anSecColor";
 
   static CustomWiFiManager wm;
   static Preferences preferences;
@@ -125,8 +133,12 @@ class Utils
 
   static bool getNightLight() { return pref_nightLight; }
   static bool getMotionActivated() { return pref_motionActivated; }
-  static uint32_t getPrimaryColor() { return pref_primaryColor; }
+  static int getMotionActivationTime() { return pref_motionActivationTime; }
+  static uint32_t getTextColor() { return pref_textColor; }
   static uint32_t getNightLightColor() { return pref_nightLightColor; }
+  static uint8_t getAnimationType() { return pref_animationType; }
+  static uint32_t getAnimationPrimaryColor() { return pref_animationPrimaryColor; }
+  static uint32_t getAnimationSecondaryColor() { return pref_animationSecondaryColor; }
 
  private:
   static const char* resetReasons[];
@@ -148,19 +160,25 @@ class Utils
 
   static CustomWiFiManagerParameter title_generalSettings;
   static CustomWiFiManagerParameter title_nightLight;
+  static CustomWiFiManagerParameter title_animation;
 
   static ParameterSwitch switch_nightLight;
   static ParameterSwitch switch_motionActivated;
-  static ParameterColorPicker colorPicker_primaryColor;
+  static ParameterSlider slider_motionActivationTime;
+  static ParameterColorPicker colorPicker_textColor;
   static ParameterColorPicker colorPicker_nightLightColor;
-
-
-  static CustomWiFiManagerParameter time_interval_slider;
+  static ParameterSelect animationType;
+  static ParameterColorPicker animationPrimaryColor;
+  static ParameterColorPicker animationSecondaryColor;
 
   static bool pref_nightLight;
   static bool pref_motionActivated;
-  static uint32_t pref_primaryColor;
+  static int pref_motionActivationTime;
+  static uint32_t pref_textColor;
   static uint32_t pref_nightLightColor;
+  static uint8_t pref_animationType;
+  static uint32_t pref_animationPrimaryColor;
+  static uint32_t pref_animationSecondaryColor;
 
   static void loadPreferences();
   static bool startWiFiManager();

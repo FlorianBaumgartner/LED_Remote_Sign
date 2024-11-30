@@ -8,6 +8,8 @@
 #include "device.h"
 #include "esp_wifi.h"
 
+#include "displaySign.h"
+
 CustomWiFiManager Utils::wm(console.log);
 Preferences Utils::preferences;
 Utils::Country Utils::country = Utils::Unknown;
@@ -29,92 +31,26 @@ const char* Utils::resetReasons[] = {"Unknown",       "Power-on", "External",   
 
 bool Utils::pref_nightLight = false;
 bool Utils::pref_motionActivated = false;
-uint32_t Utils::pref_primaryColor = 0x000000;
+int Utils::pref_motionActivationTime = 0;
+uint32_t Utils::pref_textColor = 0x000000;
 uint32_t Utils::pref_nightLightColor = 0x000000;
+uint8_t Utils::pref_animationType = 0;
+uint32_t Utils::pref_animationPrimaryColor = 0x000000;
+uint32_t Utils::pref_animationSecondaryColor = 0x000000;
 
 CustomWiFiManagerParameter Utils::title_generalSettings(nullptr, nullptr, nullptr, 0, "<h2>General Settings<h2><hr>", WFM_NO_LABEL);
 CustomWiFiManagerParameter Utils::title_nightLight(nullptr, nullptr, nullptr, 0, "<br><h2>Night Light<h2><hr>", WFM_NO_LABEL);
+CustomWiFiManagerParameter Utils::title_animation(nullptr, nullptr, nullptr, 0, "<br><h2>Animation<h2><hr>", WFM_NO_LABEL);
 
 ParameterSwitch Utils::switch_nightLight(SWITCH_NIGHT_LIGHT, "Night Light");
 ParameterSwitch Utils::switch_motionActivated(SWITCH_MOTION_ACTIVATED, "Motion Activated");
-ParameterColorPicker Utils::colorPicker_primaryColor(COLOR_PICKER_PRIMARY_COLOR, "Primary Color");
+ParameterSlider Utils::slider_motionActivationTime(SLIDER_MOTION_ACTIVATION_TIME, "Motion Activation Time", 5, 60, 5, "seconds");
+ParameterColorPicker Utils::colorPicker_textColor(COLOR_PICKER_TEXT_COLOR, "Text Color");
 ParameterColorPicker Utils::colorPicker_nightLightColor(COLOR_PICKER_NIGHT_LIGHT_COLOR, "Night Light Color");
-
-
-CustomWiFiManagerParameter Utils::time_interval_slider(
-  "time_interval",    // ID
-  "Time Interval",    // Label
-  "08:00-16:45",      // Default
-  16,                 // Length
-  "<style>"
-  ".double-range { width: 100%; max-width: 500px; margin: 10px auto; font-family: Arial, sans-serif; color: #FFFFFF; }"
-  ".range-slider { position: relative; width: calc(100% - 20px); margin: 0 auto; height: 10px; background-color: #e1e9f6; border-radius: 5px; "
-  "overflow: hidden; box-sizing: border-box; padding: 0 10px; }"
-  ".range-fill { position: absolute; height: 100%; background-color: #007bff; border-radius: 5px; }"
-  ".range-input { position: relative; width: 100%; height: 10px; margin-top: -10px; }"
-  ".range-input input { position: absolute; width: 100%; height: 10px; margin: 0; top: 0; pointer-events: none; -webkit-appearance: none; "
-  "background: none; }"
-  ".range-input input::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background-color: #007bff; border: 4px solid #80bfff; "
-  "pointer-events: auto; -webkit-appearance: none; cursor: pointer; }"
-  ".range-input input::-moz-range-thumb { height: 20px; width: 20px; border-radius: 50%; background-color: #007bff; border: 4px solid #80bfff; "
-  "pointer-events: auto; cursor: pointer; }"
-  ".time-display { display: flex; justify-content: space-between; margin-top: 5px; font-size: 14px; }"
-  "</style>"
-  "<div class='double-range'>"
-  "<h2 style='color: #FFFFFF; margin-bottom: 5px;'>Select Time Interval</h2>"
-  "<div class='range-slider'>"
-  "<span class='range-fill'></span>"
-  "</div>"
-  "<div class='range-input'>"
-  "<input type='range' class='min' min='0' max='1425' value='480' step='15'>"
-  "<input type='range' class='max' min='0' max='1425' value='1005' step='15'>"
-  "</div>"
-  "<div class='time-display'>"
-  "<span id='startTime'>08:00</span><span id='endTime'>16:45</span>"
-  "</div>"
-  "<input type='hidden' id='time_interval' name='time_interval' value='08:00-16:45'>"
-  "<script>"
-  "const rangeFill = document.querySelector('.range-fill');"
-  "const rangeInputs = document.querySelectorAll('.range-input input');"
-  "const startTime = document.getElementById('startTime');"
-  "const endTime = document.getElementById('endTime');"
-  "const hiddenInput = document.getElementById('time_interval');"
-  "// Set initial values from default"
-  "function initializeValues() {"
-  "  const defaultValues = hiddenInput.value.split('-');"
-  "  const minValue = parseTimeToMinutes(defaultValues[0]);"
-  "  const maxValue = parseTimeToMinutes(defaultValues[1]);"
-  "  rangeInputs[0].value = minValue;"
-  "  rangeInputs[1].value = maxValue;"
-  "  updateSlider();"
-  "}"
-  "function updateSlider() {"
-  "  const min = parseInt(rangeInputs[0].value);"
-  "  const max = parseInt(rangeInputs[1].value);"
-  "  if (min >= max) rangeInputs[0].value = max - 15;"
-  "  if (max <= min) rangeInputs[1].value = min + 15;"
-  "  const minValue = parseInt(rangeInputs[0].value);"
-  "  const maxValue = parseInt(rangeInputs[1].value);"
-  "  const minPercent = (minValue / 1425) * 100;"
-  "  const maxPercent = (maxValue / 1425) * 100;"
-  "  rangeFill.style.left = `${minPercent}%`;"
-  "  rangeFill.style.right = `${100 - maxPercent}%`;"
-  "  startTime.textContent = formatTime(minValue);"
-  "  endTime.textContent = formatTime(maxValue);"
-  "  hiddenInput.value = `${formatTime(minValue)}-${formatTime(maxValue)}`;"
-  "}"
-  "function formatTime(value) {"
-  "  const hours = Math.floor(value / 60).toString().padStart(2, '0');"
-  "  const minutes = (value % 60).toString().padStart(2, '0');"
-  "  return `${hours}:${minutes}`;"
-  "}"
-  "function parseTimeToMinutes(time) {"
-  "  const [hours, minutes] = time.split(':').map(Number);"
-  "  return hours * 60 + minutes;"
-  "}"
-  "rangeInputs.forEach(input => input.addEventListener('input', updateSlider));"
-  "initializeValues();"
-  "</script>");
+ParameterSelect Utils::animationType(ANIMATION_TYPE, "Animation Type", DisplaySign::ANIMATION_NAMES, DisplaySign::ANIMATION_COUNT,
+                                     PREF_DEF_ANIMATION_TYPE);
+ParameterColorPicker Utils::animationPrimaryColor(ANIMATION_PRIMARY_COLOR, "Primary Color");
+ParameterColorPicker Utils::animationSecondaryColor(ANIMATION_SECONDARY_COLOR, "Secondary Color");
 
 
 bool Utils::begin(void)
@@ -157,15 +93,18 @@ bool Utils::startWiFiManager()
   wm.startWebPortal();
 
   wm.addParameter(&title_generalSettings);
+  wm.addParameter(&colorPicker_textColor);
   wm.addParameter(&switch_motionActivated);
-  // TODO: Slider Motion Activation Time
-  wm.addParameter(&colorPicker_primaryColor);
-  // TODO: Dropdown for Animation Type
+  wm.addParameter(&slider_motionActivationTime);
 
   wm.addParameter(&title_nightLight);
   wm.addParameter(&switch_nightLight);
   wm.addParameter(&colorPicker_nightLightColor);
 
+  wm.addParameter(&title_animation);
+  wm.addParameter(&animationType);
+  wm.addParameter(&animationPrimaryColor);
+  wm.addParameter(&animationSecondaryColor);
 
   wm.setSaveParamsCallback(saveParamsCallback);
   reconnectWiFi(5, true);
@@ -176,12 +115,12 @@ void Utils::saveParamsCallback()
 {
   console.log.println("[UTILS] Saving parameters");
 
-  pref_nightLight = switch_nightLight.getValue();
-  if(pref_nightLight != preferences.getBool(SWITCH_NIGHT_LIGHT))
+  pref_textColor = colorPicker_textColor.getValue();
+  if(pref_textColor != preferences.getUInt(COLOR_PICKER_TEXT_COLOR))
   {
-    preferences.putBool(SWITCH_NIGHT_LIGHT, pref_nightLight);
-    switch_nightLight.setValue(pref_nightLight);
-    console.log.printf("  Night Light: %d\n", pref_nightLight);
+    preferences.putUInt(COLOR_PICKER_TEXT_COLOR, pref_textColor);
+    colorPicker_textColor.setValue(pref_textColor);
+    console.log.printf("  Text Color: %06X\n", pref_textColor);
   }
 
   pref_motionActivated = switch_motionActivated.getValue();
@@ -192,14 +131,22 @@ void Utils::saveParamsCallback()
     console.log.printf("  Motion Activated: %d\n", pref_motionActivated);
   }
 
-  pref_primaryColor = colorPicker_primaryColor.getValue();
-  if(pref_primaryColor != preferences.getUInt(COLOR_PICKER_PRIMARY_COLOR))
+  pref_motionActivationTime = slider_motionActivationTime.getValue();
+  if(pref_motionActivationTime != preferences.getInt(SLIDER_MOTION_ACTIVATION_TIME))
   {
-    preferences.putUInt(COLOR_PICKER_PRIMARY_COLOR, pref_primaryColor);
-    colorPicker_primaryColor.setValue(pref_primaryColor);
-    console.log.printf("  Primary Color: %06X\n", pref_primaryColor);
+    preferences.putInt(SLIDER_MOTION_ACTIVATION_TIME, pref_motionActivationTime);
+    slider_motionActivationTime.setValue(pref_motionActivationTime);
+    console.log.printf("  Motion Activation Time: %d\n", pref_motionActivationTime);
   }
 
+  pref_nightLight = switch_nightLight.getValue();
+  if(pref_nightLight != preferences.getBool(SWITCH_NIGHT_LIGHT))
+  {
+    preferences.putBool(SWITCH_NIGHT_LIGHT, pref_nightLight);
+    switch_nightLight.setValue(pref_nightLight);
+    console.log.printf("  Night Light: %d\n", pref_nightLight);
+  }
+  
   pref_nightLightColor = colorPicker_nightLightColor.getValue();
   if(pref_nightLightColor != preferences.getUInt(COLOR_PICKER_NIGHT_LIGHT_COLOR))
   {
@@ -207,21 +154,57 @@ void Utils::saveParamsCallback()
     colorPicker_nightLightColor.setValue(pref_nightLightColor);
     console.log.printf("  Night Light Color: %06X\n", pref_nightLightColor);
   }
+
+  pref_animationType = animationType.getValue();
+  if(pref_animationType != preferences.getUChar(ANIMATION_TYPE))
+  {
+    preferences.putUChar(ANIMATION_TYPE, pref_animationType);
+    animationType.setValue(pref_animationType);
+    console.log.printf("  Animation Type: %d\n", pref_animationType);
+  }
+
+  pref_animationPrimaryColor = animationPrimaryColor.getValue();
+  if(pref_animationPrimaryColor != preferences.getUInt(ANIMATION_PRIMARY_COLOR))
+  {
+    preferences.putUInt(ANIMATION_PRIMARY_COLOR, pref_animationPrimaryColor);
+    animationPrimaryColor.setValue(pref_animationPrimaryColor);
+    console.log.printf("  Animation Primary Color: %06X\n", pref_animationPrimaryColor);
+  }
+
+  pref_animationSecondaryColor = animationSecondaryColor.getValue();
+  if(pref_animationSecondaryColor != preferences.getUInt(ANIMATION_SECONDARY_COLOR))
+  {
+    preferences.putUInt(ANIMATION_SECONDARY_COLOR, pref_animationSecondaryColor);
+    animationSecondaryColor.setValue(pref_animationSecondaryColor);
+    console.log.printf("  Animation Secondary Color: %06X\n", pref_animationSecondaryColor);
+  }
 }
 
 void Utils::loadPreferences()
 {
-  pref_nightLight = preferences.getBool(SWITCH_NIGHT_LIGHT, PREF_DEF_NIGHT_LIGHT);
-  switch_nightLight.setValue(pref_nightLight);
+  pref_textColor = preferences.getUInt(COLOR_PICKER_TEXT_COLOR, PREF_DEF_TEXT_COLOR);
+  colorPicker_textColor.setValue(pref_textColor);
 
   pref_motionActivated = preferences.getBool(SWITCH_MOTION_ACTIVATED, PREF_DEF_MOTION_ACTIVATED);
   switch_motionActivated.setValue(pref_motionActivated);
 
-  pref_primaryColor = preferences.getUInt(COLOR_PICKER_PRIMARY_COLOR, PREF_DEF_PRIMARY_COLOR);
-  colorPicker_primaryColor.setValue(pref_primaryColor);
+  pref_motionActivationTime = preferences.getInt(SLIDER_MOTION_ACTIVATION_TIME, PREF_DEF_MOTION_ACTIVATION_TIME);
+  slider_motionActivationTime.setValue(pref_motionActivationTime);
+
+  pref_nightLight = preferences.getBool(SWITCH_NIGHT_LIGHT, PREF_DEF_NIGHT_LIGHT);
+  switch_nightLight.setValue(pref_nightLight);
 
   pref_nightLightColor = preferences.getUInt(COLOR_PICKER_NIGHT_LIGHT_COLOR, PREF_DEF_NIGHT_LIGHT_COLOR);
   colorPicker_nightLightColor.setValue(pref_nightLightColor);
+
+  pref_animationType = preferences.getUChar(ANIMATION_TYPE, PREF_DEF_ANIMATION_TYPE);
+  animationType.setValue(pref_animationType);
+
+  pref_animationPrimaryColor = preferences.getUInt(ANIMATION_PRIMARY_COLOR, PREF_DEF_ANIMATION_PRIMARY_COLOR);
+  animationPrimaryColor.setValue(pref_animationPrimaryColor);
+
+  pref_animationSecondaryColor = preferences.getUInt(ANIMATION_SECONDARY_COLOR, PREF_DEF_ANIMATION_SECONDARY_COLOR);
+  animationSecondaryColor.setValue(pref_animationSecondaryColor);
 }
 
 
@@ -230,7 +213,7 @@ Utils::ClientConnection Utils::isClientConnected(IPAddress* ipAddress)
   if(WiFi.softAPgetStationNum() > 0)    // Abort if someone has already connected to the device (AP)
   {
     std::vector<IPAddress> clientIPs = getConnectedClientIPs(5);
-    for(IPAddress ip : clientIPs)   // Check all connected clients if they are reachable
+    for(IPAddress ip : clientIPs)    // Check all connected clients if they are reachable
     {
       if(Ping.ping(ip))
       {
@@ -256,7 +239,7 @@ bool Utils::reconnectWiFi(int retries, bool verbose)
     switch(isClientConnected(&ip))
     {
       case ClientConnection::None:
-        break;  // No client connected, we can restart the WiFiManager to reconnect to known network
+        break;    // No client connected, we can restart the WiFiManager to reconnect to known network
       case ClientConnection::Connected:
         console.warning.printf("[UTILS] Aborting reconnect: Client connected to portal: %s\n", ip.toString().c_str());
         return false;

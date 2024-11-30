@@ -58,7 +58,7 @@ class Discord
 {
  public:
   constexpr static const int MAX_MESSAGE_COUNT_PER_REQUEST = 15;
-  constexpr static const float DISCORD_UPDATE_INTERVAL = 3.0;    // [s]  Interval to check for new messages
+  constexpr static const float DISCORD_UPDATE_INTERVAL = 5.0;    // [s]  Interval to check for new messages
   constexpr static const float SERVER_SLOW_DOWN_TIME = 3.0;      // [s]  Time to wait after server asked to slow down
   constexpr static const int EVENT_VALIDITY_TIME = 20;           // [s]  Time within an event is seen as new and therefore valid
 
