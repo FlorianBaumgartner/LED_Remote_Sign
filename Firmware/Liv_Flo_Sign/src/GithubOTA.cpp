@@ -48,6 +48,8 @@ WiFiClient GithubOTA::base_client;
 ESP_SSLClient GithubOTA::client;
 WiFiClientSecure GithubOTA::otaClient;
 
+int GithubOTA::_checkForUpdatesFailed = 0;
+
 GithubOTA::GithubOTA() {}
 
 void GithubOTA::begin(const char* currentFwVersion)
@@ -198,7 +200,7 @@ void GithubOTA::updateTask(void* pvParameter)
     TickType_t task_last_tick = xTaskGetTickCount();
     if(!ref->_updateInProgress)
     {
-      ref->checkForUpdates();    // Check is server is available and if an update is available
+      ref->_checkForUpdatesFailed += ref->checkForUpdates() ? 0 : 1;    // Check is server is available and if an update is available
     }
     vTaskDelayUntil(&task_last_tick, (const TickType_t)1000 * FIRMWARE_UPDATE_INTERVAL);
   }

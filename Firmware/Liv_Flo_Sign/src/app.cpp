@@ -65,7 +65,7 @@ void App::appTask(void* pvParameter)
     {
       if(app->utils.getConnectionState())
       {
-        if(app->githubOTA.updateAvailable() && !app->githubOTA.updateInProgress())
+        if(app->githubOTA.updateAvailable())
         {
           console.log.println("[APP] Update available, shut down services");
           app->discord.enable(false);
@@ -200,6 +200,17 @@ void App::appTask(void* pvParameter)
     app->sign.setAnimationType(Utils::getAnimationType());
     app->sign.setAnimationPrimaryColor(Utils::getAnimationPrimaryColor());
     app->sign.setAnimationSecondaryColor(Utils::getAnimationSecondaryColor());
+
+    // TODO: Remove after debugging
+    static uint32_t tUpdateCheck = 0;
+    static const uint32_t tUpdateCheckInterval = 8 * 60 * 60 * 1000;    // 8 hours
+    if(millis() - tUpdateCheck > tUpdateCheckInterval)
+    {
+      tUpdateCheck = millis();
+      console.log.println("[APP] Sending update report");
+      String message = String("UPDATE_CHECK: ") + app->githubOTA.getFailedUpdateChecks() + " (" + millis() / (1000 * 60) + "min)";
+      app->discord.sendEvent(message.c_str());
+    }
 
     app->utils.resetWatchdog();
     vTaskDelayUntil(&task_last_tick, pdMS_TO_TICKS(1000 / APP_UPDATE_RATE));

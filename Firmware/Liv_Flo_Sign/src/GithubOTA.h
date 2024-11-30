@@ -66,6 +66,8 @@ class GithubOTA
   Firmware getCurrentFirmwareVersion() { return _currentFwVersion; }
   Firmware getLatestFirmwareVersion() { return _latestFwVersion; }
 
+  int getFailedUpdateChecks() { return _checkForUpdatesFailed; }
+
  private:
   static char firmwareUrl[256];
   Firmware _latestFwVersion;
@@ -77,6 +79,8 @@ class GithubOTA
   static bool _updateAborted;
   static bool _updateInProgress;
   static uint16_t _progress;
+
+  static int _checkForUpdatesFailed;
 
   static HTTPClient http;
   static WiFiClient base_client;
