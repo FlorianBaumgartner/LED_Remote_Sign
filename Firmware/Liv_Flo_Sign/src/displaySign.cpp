@@ -277,7 +277,7 @@ void DisplaySign::animationWave(uint32_t framecount, bool eventFlag)
 
   if(eventFlag)
   {
-    speed *= 5;
+    speed *= 7.5;
     wavelength = 1;
     sec_red = sec_green = sec_blue = 0;
   }

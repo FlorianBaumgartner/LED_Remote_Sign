@@ -169,6 +169,7 @@ void App::appTask(void* pvParameter)
         }
       }
     }
+    newMessageFlag = newMessageFlag && Utils::getMotionActivated();    // New message animation is only shown when motion activation is enabled
     app->sign.setEvent(eventTrigger);
     app->sign.setNewMessage(newMessageFlag);
     app->sign.setMotionEvent(motionTrigger);    // Trigger to activate the sign
