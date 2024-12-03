@@ -33,7 +33,7 @@
 #include "DisplaySign.h"
 #include "console.h"
 
-const char* const DisplaySign::ANIMATION_NAMES[] = {"OFF", "Wave", "Heart"};
+const char* const DisplaySign::ANIMATION_NAMES[] = {"OFF", "Wave", "Sprinkle", "Heart"};
 const size_t DisplaySign::ANIMATION_COUNT = sizeof(DisplaySign::ANIMATION_NAMES) / sizeof(DisplaySign::ANIMATION_NAMES[0]);
 
 constexpr const float DisplaySign::canvas_center[2] = {64.35, 70.5};
@@ -159,6 +159,9 @@ void DisplaySign::updateTask(void)
       animationWave(framecount, eventActive);
       break;
     case 2:
+      animationSprinkle(framecount, eventActive);
+      break;
+    case 3:
       animationHeart(framecount, eventActive);
       break;
     default:
@@ -312,6 +315,33 @@ void DisplaySign::animationWave(uint32_t framecount, bool eventFlag)
   }
   pixels.show();
 }
+
+void DisplaySign::animationSprinkle(uint32_t framecount, bool eventFlag)
+{
+  constexpr float speed = 1.2f;    // One ramp per n frames
+  constexpr int group1 = 9;        // Number of LEDs in the first group
+  constexpr int group2 = 14;       // Number of LEDs in the second group
+
+  uint8_t primary_red = (animationPrimaryColor >> 16) & 0xFF;
+  uint8_t primary_green = (animationPrimaryColor >> 8) & 0xFF;
+  uint8_t primary_blue = animationPrimaryColor & 0xFF;
+  const float inv_group1 = (1.0f / group1) * 255;
+  const float inv_group2 = (1.0f / group2) * 255;
+  for(int i = 0; i < pixels.numPixels(); i++)
+  {
+    int val1 = abs((int)(i * inv_group1 - framecount * speed) % 510) - 255;          // Forwards
+    int val2 = abs((int)(i * inv_group2 + framecount * speed * 1.7) % 510) - 255;    // Backwards
+    val1 = (val1 * val1) / 255;
+    val2 = (val2 * val2) / 255;
+    int val = min(val1, val2);
+    uint8_t red = map(val, 0, 255, 0, primary_red);
+    uint8_t green = map(val, 0, 255, 0, primary_green);
+    uint8_t blue = map(val, 0, 255, 0, primary_blue);
+    pixels.setPixelColor(i, pixels.Color(red, green, blue));
+  }
+  pixels.show();
+}
+
 
 void DisplaySign::animationHeart(uint32_t framecount, bool eventFlag)
 {

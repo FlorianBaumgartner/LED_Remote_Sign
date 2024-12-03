@@ -94,6 +94,7 @@ class DisplaySign
   void animationOff(uint32_t framecount, bool eventFlag);
   void animationNightMode(uint32_t framecount, bool eventFlag);
   void animationWave(uint32_t framecount, bool eventFlag);
+  void animationSprinkle(uint32_t framecount, bool eventFlag);
   void animationHeart(uint32_t framecount, bool eventFlag);
 
 
@@ -102,10 +103,11 @@ class DisplaySign
   static const float canvas_min_max_x[2];
   static const int16_t cos_lut[360];    // Cosine lookup table for values between -1 and 1 scaled to an integer range [-1000, 1000]
 
-  float mapf(float x, float in_min, float in_max, float out_min, float out_max)
+  inline float fmap(float x, float in_min, float in_max, float out_min, float out_max)
   {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
   }
+  inline float fmodfNumpy(float a, float b) { return b == 0.0 ? NAN : fmodf(a, b) + (fmodf(a, b) < 0 != b < 0) * b; }
 };
 
 #endif

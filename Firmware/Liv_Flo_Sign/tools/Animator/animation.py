@@ -98,17 +98,31 @@ class Animation:
 
     @staticmethod
     def sprinkle(framecount, color, trigger):
-        speed = 0.03            # one ramp per n frames
-        number_of_groups = 4
-        high_color = [0xFF, 0xFF, 0xFF] 
+        speed = 0.005            # one ramp per n frames
+        number_of_groups = 9
+        high_color = [0xFF, 0xA0, 0x00] 
+
+        for i in range(len(color)):
+            val = np.abs(np.mod(np.abs(i / number_of_groups - framecount * speed), 2) - 1)
+            val *= np.abs(np.mod(np.abs(i / (number_of_groups - 1) + framecount * speed), 2) - 1)
+            color[i] = [
+                int(val * high_color[0]),
+                int(val * high_color[1]),
+                int(val * high_color[2])
+            ]
+        return color
+
+
+    @staticmethod
+    def heart(framecount, color, trigger):
+        speed = 0.01            # one ramp per n frames
+        high_color = [0xFF, 0x00, 0x00] 
         low_color = [0xFF, 0xA0, 0x00] 
 
         for i in range(len(color)):
-            group = i % number_of_groups
-            phaseshift = (1.0 / number_of_groups) * group
-
-            # \left|\operatorname{mod}\left(\left|\frac{x-p}{3}\right|,2\right)-1\right|
-            val = np.abs(np.mod(np.abs(i - framecount * speed - phaseshift), 2) - 1)
+            x = Animation.squares[i]['PosX'] - Animation.canvas_center_x 
+            y = Animation.squares[i]['PosY'] - Animation.canvas_center_y
+            val = np.abs(np.sin(np.sqrt(x**2 + y**2) - framecount * speed))
             color[i] = [
                 int(Animation.map(val, 0, 1, low_color[0], high_color[0])),
                 int(Animation.map(val, 0, 1, low_color[1], high_color[1])),
