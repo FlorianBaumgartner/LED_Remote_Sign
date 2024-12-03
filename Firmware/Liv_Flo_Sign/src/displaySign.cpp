@@ -33,11 +33,12 @@
 #include "DisplaySign.h"
 #include "console.h"
 
-const char* const DisplaySign::ANIMATION_NAMES[] = {"OFF", "Wave", "Sprinkle", "Heart"};
+const char* const DisplaySign::ANIMATION_NAMES[] = {"OFF", "Wave", "Sprinkle", "Circles"};
 const size_t DisplaySign::ANIMATION_COUNT = sizeof(DisplaySign::ANIMATION_NAMES) / sizeof(DisplaySign::ANIMATION_NAMES[0]);
 
 constexpr const float DisplaySign::canvas_center[2] = {64.35, 70.5};
 constexpr const float DisplaySign::canvas_min_max_x[2] = {9.875, 132.65};
+constexpr const float DisplaySign::canvas_min_max_y[2] = {50.325, 83.65};
 constexpr const float DisplaySign::square_coordinates[268][2] = {
   {11.7, 66.075},    {12.7, 67.475},    {13.6, 69.025},    {14.325, 70.55},   {15.0, 72.2},      {15.575, 73.825},  {16.0, 75.525},
   {16.25, 77.25},    {16.3, 78.975},    {16.175, 80.65},   {15.75, 82.275},   {14.475, 83.65},   {12.85, 82.7},     {12.05, 81.025},
@@ -162,7 +163,7 @@ void DisplaySign::updateTask(void)
       animationSprinkle(framecount, eventActive);
       break;
     case 3:
-      animationHeart(framecount, eventActive);
+      animationCircles(framecount, eventActive);
       break;
     default:
       break;
@@ -343,9 +344,52 @@ void DisplaySign::animationSprinkle(uint32_t framecount, bool eventFlag)
 }
 
 
-void DisplaySign::animationHeart(uint32_t framecount, bool eventFlag)
+void DisplaySign::animationCircles(uint32_t framecount, bool eventFlag)
 {
-  // TODO: Implement heart animation
-  pixels.clear();
+  static float radius = -1;                // Circle radius
+  static float velocity = 0.2;             // Initial velocity
+  constexpr float acceleration = 0.02;     // Acceleration rate
+  constexpr int radius_out_bound = 200;    // Radius to reset the circle
+  static float spawn_x = 0;                // Random spawn X position
+  static float spawn_y = 0;                // Random spawn Y position
+
+  uint8_t primary_red = (animationPrimaryColor >> 16) & 0xFF;
+  uint8_t primary_green = (animationPrimaryColor >> 8) & 0xFF;
+  uint8_t primary_blue = animationPrimaryColor & 0xFF;
+
+  if(radius < 0 || eventFlag)
+  {
+    spawn_x = random(canvas_min_max_x[0], canvas_min_max_x[1]);
+    spawn_y = random(canvas_min_max_y[0], canvas_min_max_y[1]);
+    radius = 0;        // Reset radius
+    velocity = 0.2;    // Reset velocity
+  }
+  velocity += acceleration;
+  radius += velocity;
+  float gradient_width = 25.0 * velocity;
+  for(int i = 0; i < pixels.numPixels(); i++)
+  {
+    float x = square_coordinates[i][0];
+    float y = square_coordinates[i][1];
+    float distance = sqrt((x - spawn_x) * (x - spawn_x) + (y - spawn_y) * (y - spawn_y));
+    if(fabs(distance - radius) <= gradient_width)
+    {
+      float brightness = max(0.0, 1.0 - fabs(distance - radius) / gradient_width);
+      brightness *= brightness;    // Square the brightness for a more pronounced effect
+      uint8_t red = static_cast<uint8_t>(primary_red * brightness);
+      uint8_t green = static_cast<uint8_t>(primary_green * brightness);
+      uint8_t blue = static_cast<uint8_t>(primary_blue * brightness);
+      pixels.setPixelColor(i, pixels.Color(red, green, blue));
+    }
+    else
+    {
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+    }
+  }
+  float max_distance = max(canvas_min_max_x[1] - canvas_min_max_x[0], canvas_min_max_y[1] - canvas_min_max_y[0]) + radius_out_bound;
+  if(radius > max_distance)
+  {
+    radius = -1;    // Reset radius for a new circle
+  }
   pixels.show();
 }

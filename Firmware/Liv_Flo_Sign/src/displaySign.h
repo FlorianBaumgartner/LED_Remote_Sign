@@ -95,12 +95,13 @@ class DisplaySign
   void animationNightMode(uint32_t framecount, bool eventFlag);
   void animationWave(uint32_t framecount, bool eventFlag);
   void animationSprinkle(uint32_t framecount, bool eventFlag);
-  void animationHeart(uint32_t framecount, bool eventFlag);
+  void animationCircles(uint32_t framecount, bool eventFlag);
 
 
   static const float canvas_center[2];
   static const float square_coordinates[268][2];
   static const float canvas_min_max_x[2];
+  static const float canvas_min_max_y[2];
   static const int16_t cos_lut[360];    // Cosine lookup table for values between -1 and 1 scaled to an integer range [-1000, 1000]
 
   inline float fmap(float x, float in_min, float in_max, float out_min, float out_max)

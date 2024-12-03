@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import random
 
 
 class Animation:
@@ -10,6 +11,8 @@ class Animation:
         Animation.canvas_center_y = 70.5
         Animation.canvas_min_x = min([square['PosX'] for square in squares])
         Animation.canvas_max_x = max([square['PosX'] for square in squares])
+        Animation.canvas_min_y = min([square['PosY'] for square in squares])
+        Animation.canvas_max_y = max([square['PosY'] for square in squares])
         Animation.trigger = False
         Animation.radius = -1        # mm
 
@@ -22,6 +25,7 @@ class Animation:
         # Print the center of the canvas as cpp float
         print(f"const float canvas_center[2] = {{{Animation.canvas_center_x}, {Animation.canvas_center_y}}};")
         print(f"const float canvas_min_max_x[2] = {{{Animation.canvas_min_x}, {Animation.canvas_max_x}}};")
+        print(f"const float canvas_min_max_y[2] = {{{Animation.canvas_min_y}, {Animation.canvas_max_y}}};")
 
     def map(value, in_min, in_max, out_min, out_max):
         return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
@@ -114,21 +118,62 @@ class Animation:
 
 
     @staticmethod
-    def heart(framecount, color, trigger):
-        speed = 0.01            # one ramp per n frames
-        high_color = [0xFF, 0x00, 0x00] 
-        low_color = [0xFF, 0xA0, 0x00] 
+    def circles(framecount, color, trigger):
+        high_color = [0xFF, 0x00, 0x00]  # Primary color (red)
 
+        # Initialize the circle radius and velocity
+        if hasattr(Animation, 'acceleration') is False:
+            Animation.radius = -1       # mm
+            trigger = True
+            Animation.acceleration = 0.02  # Acceleration rate
+
+        # Initialize a new random spawn position if the radius is reset or trigger is active
+        if Animation.radius < 0 or trigger:
+            Animation.spawn_x = random.uniform(Animation.canvas_min_x, Animation.canvas_max_x)
+            Animation.spawn_y = random.uniform(Animation.canvas_min_y, Animation.canvas_max_y)
+            Animation.radius = 0  # Start the circle propagation
+            Animation.velocity = 0.2 # Reset velocity for the new circle
+
+        # Update velocity with acceleration
+        Animation.velocity += Animation.acceleration
+
+        # Update radius using the current velocity
+        Animation.radius += Animation.velocity
+
+        # Define the gradient fall-off range (how far it should fall to zero)
+        gradient_width = 25  # mm
+
+        gradient_width *= Animation.velocity
+
+        # Update colors for all LEDs
         for i in range(len(color)):
-            x = Animation.squares[i]['PosX'] - Animation.canvas_center_x 
-            y = Animation.squares[i]['PosY'] - Animation.canvas_center_y
-            val = np.abs(np.sin(np.sqrt(x**2 + y**2) - framecount * speed))
-            color[i] = [
-                int(Animation.map(val, 0, 1, low_color[0], high_color[0])),
-                int(Animation.map(val, 0, 1, low_color[1], high_color[1])),
-                int(Animation.map(val, 0, 1, low_color[2], high_color[2]))
-            ]
+            x = Animation.squares[i]['PosX']
+            y = Animation.squares[i]['PosY']
+            distance = ((x - Animation.spawn_x)**2 + (y - Animation.spawn_y)**2)**0.5
+
+            # Compute the brightness based on the distance from the current radius
+            if abs(distance - Animation.radius) <= gradient_width:
+                # Calculate the brightness factor
+                brightness = max(0, 1 - abs(distance - Animation.radius) / gradient_width)
+                color[i] = [
+                    int(high_color[0] * brightness),
+                    int(high_color[1] * brightness),
+                    int(high_color[2] * brightness)
+                ]
+            else:
+                # Outside the gradient range, set to low color
+                color[i] = [0, 0, 0]
+
+        # Reset radius when it exceeds the canvas size
+        max_distance = max(
+            Animation.canvas_max_x - Animation.canvas_min_x,
+            Animation.canvas_max_y - Animation.canvas_min_y
+        )
+        if Animation.radius > max_distance + 200:
+            Animation.radius = -1  # Reset radius to spawn a new circle
+
         return color
+
 
 
     @staticmethod
