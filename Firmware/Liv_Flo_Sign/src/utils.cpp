@@ -16,7 +16,6 @@ Utils::Country Utils::country = Utils::Unknown;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
 int Utils::buttonPin = -1;
-hw_timer_t* Utils::Timer0_Cfg = NULL;
 bool Utils::connectionState = false;
 bool Utils::shortPressEvent = false;
 bool Utils::longPressEvent = false;
@@ -68,11 +67,7 @@ bool Utils::begin(void)
 
   connectionState = false;
   xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);    // Stack Watermark: 4672
-
-  Timer0_Cfg = timerBegin(0, 80, true);
-  timerAttachInterrupt(Timer0_Cfg, &timerISR, true);
-  timerAlarmWrite(Timer0_Cfg, 1000000 / BUTTON_TIMER_RATE, true);
-  timerAlarmEnable(Timer0_Cfg);
+  xTaskCreate(buttonTask, "button", 1024, NULL, 20, NULL);    // Stack Watermark: 2492
   return true;
 }
 
@@ -536,28 +531,34 @@ void Utils::updateTask(void* pvParameter)
   }
 }
 
-void Utils::timerISR(void)
+void Utils::buttonTask(void* pvParameter)
 {
-  static uint32_t buttonPressTime = millis();
-  static bool buttonOld = false, buttonNew = false, longPressEarly = false;
-  buttonOld = buttonNew;
-  buttonNew = !digitalRead(buttonPin);
+  Utils* ref = (Utils*)pvParameter;
 
-  if(!longPressEarly)
+  while(true)
   {
-    if(millis() - buttonPressTime > BUTTON_LONG_PRESS_TIME * 1000)
+    static uint32_t buttonPressTime = millis();
+    static bool buttonOld = false, buttonNew = false, longPressEarly = false;
+    buttonOld = buttonNew;
+    buttonNew = !digitalRead(buttonPin);
+
+    if(!longPressEarly)
     {
-      longPressEvent = true;
-      longPressEarly = true;    // Prevent multiple long press events
+      if(millis() - buttonPressTime > BUTTON_LONG_PRESS_TIME * 1000)
+      {
+        longPressEvent = true;
+        longPressEarly = true;    // Prevent multiple long press events
+      }
+      if(buttonOld && !buttonNew)    // Button was released
+      {
+        shortPressEvent = true;
+      }
     }
-    if(buttonOld && !buttonNew)    // Button was released
+    if(!buttonNew)
     {
-      shortPressEvent = true;
+      buttonPressTime = millis();    // Keep the time of the last time the button was unpressed
+      longPressEarly = false;
     }
-  }
-  if(!buttonNew)
-  {
-    buttonPressTime = millis();    // Keep the time of the last time the button was unpressed
-    longPressEarly = false;
+    vTaskDelay(pdMS_TO_TICKS(1000 / BUTTON_UPDATE_RATE));
   }
 }
