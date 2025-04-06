@@ -33,11 +33,11 @@
 #include "device.h"
 
 const Device Device::devices[8] = {
-  Device(LIV_FLO_SIGN_0, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),                    // Liv's sign (ZHdK)
-  Device(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_2, LIV_FLO_SIGN_3}, 2),                    // Liv's sign (bedroom)
-  Device(LIV_FLO_SIGN_2, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1, LIV_FLO_SIGN_3}, 3),    // Flo's sign (development unit)
-  Device(LIV_FLO_SIGN_3, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1, LIV_FLO_SIGN_2}, 3),    // Flo's sign (bedroom)
-  Device(LIV_FLO_SIGN_4, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),                    // Backup
+  Device(LIV_FLO_SIGN_0, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_1, LIV_FLO_SIGN_2}, 2),                    // Flo's sign (bedroom)
+  Device(LIV_FLO_SIGN_1, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_3}, 2),                    // Liv's sign (bedroom)
+  Device(LIV_FLO_SIGN_2, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1, LIV_FLO_SIGN_3}, 3),    // Not available anymore (got missing)
+  Device(LIV_FLO_SIGN_3, PHONE_LIV, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1, LIV_FLO_SIGN_2}, 3),    // Not available anymore (got missing)
+  Device(LIV_FLO_SIGN_4, PHONE_FLO, (const char*[]){LIV_FLO_SIGN_0, LIV_FLO_SIGN_1}, 2),                    // Not available anymore (got missing)
   Device(ESP32C3_DEV_BOARD_RGB_LED, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_LCD, ESP32S3_DEV_BOARD_BLING}, 2),
   Device(ESP32C3_DEV_BOARD_LCD, PHONE_LIV, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32S3_DEV_BOARD_BLING}, 2),
   Device(ESP32S3_DEV_BOARD_BLING, PHONE_FLO, (const char*[]){ESP32C3_DEV_BOARD_RGB_LED, ESP32C3_DEV_BOARD_LCD}, 2)};
