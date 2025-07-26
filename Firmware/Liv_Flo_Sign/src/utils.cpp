@@ -66,7 +66,7 @@ bool Utils::begin(void)
   loadPreferences();
 
   connectionState = false;
-  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);    // Stack Watermark: 4672
+  xTaskCreate(updateTask, "utils", 6000, NULL, 18, NULL);     // Stack Watermark: 4672
   xTaskCreate(buttonTask, "button", 1024, NULL, 20, NULL);    // Stack Watermark: 2492
   return true;
 }
@@ -141,7 +141,7 @@ void Utils::saveParamsCallback()
     switch_nightLight.setValue(pref_nightLight);
     console.log.printf("  Night Light: %d\n", pref_nightLight);
   }
-  
+
   pref_nightLightColor = colorPicker_nightLightColor.getValue();
   if(pref_nightLightColor != preferences.getUInt(COLOR_PICKER_NIGHT_LIGHT_COLOR))
   {
@@ -250,7 +250,7 @@ bool Utils::reconnectWiFi(int retries, bool verbose)
   wm.setWiFiAutoReconnect(false);    // We handle the reconnection ourselves
   if(wm.autoConnect(Device::getDeviceName().c_str()))
   {
-    console.ok.printf("[UTILS] Connected to %s, IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+    console.ok.printf("[UTILS] Connected to \"%s\", IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
     if(!wm.getConfigPortalActive())
     {
       wm.startConfigPortal(Device::getDeviceName().c_str());
@@ -310,13 +310,13 @@ bool Utils::updateTimeZoneOffset()
   static const char* ntpServer = "pool.ntp.org";
 
   bool receivedTimeOffset = false;
-  if(getOffsetFromWorldTimeAPI())
+  if(getOffsetFromIpapi())
   {
     receivedTimeOffset = true;
   }
-  else if(getOffsetFromIpapi())    // Try with alternative API (Ipapi), since WorldTimeAPI is currently not available
+  else if(getOffsetFromWorldTimeAPI())    // Try with alternative API (WorldTimeAPI), since Ipapi is currently not available
   {
-    console.warning.println("[UTILS] Using Ipapi as fallback for time zone offset");
+    console.warning.println("[UTILS] Using WorldTimeAPI as fallback for time zone offset");
     receivedTimeOffset = true;
   }
   if(receivedTimeOffset)
@@ -470,7 +470,9 @@ void Utils::updateTask(void* pvParameter)
           else
           {
             country = Utils::Unknown;
-            console.log.printf("[UTILS] Country: Unknown (%s)\n", myCountry.cc);
+            char countryName[4] = {myCountry.cc[0], myCountry.cc[1], myCountry.cc[2], '\0'};
+            countryName[2] = (countryName[2] != ' ')? countryName[2] : '\0';    // Replace space with null terminator for printing
+            console.log.printf("[UTILS] Country: Unknown (%s)\n", countryName);
           }
         }
         getUnixTime();    // Get time offset from the internet
