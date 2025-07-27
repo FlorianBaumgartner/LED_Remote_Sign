@@ -13,6 +13,7 @@
 CustomWiFiManager Utils::wm(console.log);
 Preferences Utils::preferences;
 Utils::Country Utils::country = Utils::Unknown;
+const char* Utils::countryName = nullptr;
 int32_t Utils::raw_offset = 0;
 int32_t Utils::dst_offset = 0;
 int Utils::buttonPin = -1;
@@ -388,6 +389,7 @@ bool Utils::getOffsetFromIpapi()
     }
     String localTime = doc["location"]["local_time"].as<String>();    // e.g., "2024-11-14T20:42:49-06:00"
     bool is_dst = doc["location"]["is_dst"].as<bool>();
+    countryName = doc["location"]["country_code"].as<const char*>();
 
     localTime = localTime.substring(19);    // Remove the date part
     int offsetMinutes = localTime.substring(localTime.length() - 2).toInt();
@@ -452,6 +454,15 @@ void Utils::updateTask(void* pvParameter)
         static wifi_country_t myCountry;
         if(esp_wifi_get_country(&myCountry) == ESP_OK)
         {
+          if(strncmp(myCountry.cc, "CN", 2) == 0)    // China is default when no country code could be determined
+          {
+            if(getOffsetFromIpapi())    // Retreave country name from Ipapi
+            {
+              myCountry.cc[0] = countryName[0];
+              myCountry.cc[1] = countryName[1];
+              myCountry.cc[2] = countryName[2];
+            }
+          }
           if(strncmp(myCountry.cc, "CH", 2) == 0)
           {
             country = Utils::Switzerland;
@@ -470,9 +481,9 @@ void Utils::updateTask(void* pvParameter)
           else
           {
             country = Utils::Unknown;
-            char countryName[4] = {myCountry.cc[0], myCountry.cc[1], myCountry.cc[2], '\0'};
-            countryName[2] = (countryName[2] != ' ')? countryName[2] : '\0';    // Replace space with null terminator for printing
-            console.log.printf("[UTILS] Country: Unknown (%s)\n", countryName);
+            char countryNameEsp[4] = {myCountry.cc[0], myCountry.cc[1], myCountry.cc[2], '\0'};
+            countryNameEsp[2] = (countryNameEsp[2] != ' ') ? countryNameEsp[2] : '\0';    // Replace space with null terminator for printing
+            console.log.printf("[UTILS] Country: Unknown (%s)\n", countryNameEsp);
           }
         }
         getUnixTime();    // Get time offset from the internet

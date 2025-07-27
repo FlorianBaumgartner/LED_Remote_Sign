@@ -170,6 +170,10 @@ size_t Console::write(const uint8_t* buffer, size_t size)
 {
   if(size == 0)
     return 0;
+  if(fsLogger)
+  {
+    fsLogger->writeToFS(buffer, size);
+  }
   if(xSemaphoreTake(bufferAccessSemaphore, portMAX_DELAY))
   {
     int free;
@@ -217,6 +221,11 @@ void Console::printStartupMessage(void)
   stream.println("*             2024, Florian Baumgartner            *");
   stream.println("****************************************************");
   stream.println(CONSOLE_LOG);
+
+  // if(fsLogger)
+  // {
+  //   fsLogger->printStoredLog();
+  // }
 }
 
 

@@ -145,6 +145,7 @@ class Utils
   static const char* serialNumber[];
   static String resetReason;
   static Country country;
+  static const char* countryName;
   static int32_t raw_offset;
   static int32_t dst_offset;
   static bool timezoneValid;

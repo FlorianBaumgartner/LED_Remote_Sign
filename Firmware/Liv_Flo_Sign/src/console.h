@@ -38,10 +38,12 @@
 #include "HardwareSerial.h"
 #endif
 
+#include "fs_logger.h"
+
 #define INTERFACE_UPDATE_RATE      10           // [hz]
 #define QUEUE_BUFFER_LENGTH        (1 << 11)    // [#]    Buffer Size must be power of 2
-#define CONSOLE_ACTIVE_DELAY       500          // [ms]   Data transmission hold-back delay after console object has been enabled
-#define INTERFACE_ACTIVE_DELAY     500    // [ms]   Data transmission hold-back delay after physical connection has been established (Terminal opened)
+#define CONSOLE_ACTIVE_DELAY       1000         // [ms]   Data transmission hold-back delay after console object has been enabled
+#define INTERFACE_ACTIVE_DELAY     1000    // [ms]   Data transmission hold-back delay after physical connection has been established (Terminal opened)
 
 #define CONSOLE_CLEAR              "\033[2J\033[1;1H"
 
@@ -192,6 +194,8 @@ class ConsoleStatus : public Stream
   }
 };
 
+class FSLogger;    // forward declaration
+
 class Console : public Stream
 {
  private:
@@ -212,6 +216,7 @@ class Console : public Stream
   SemaphoreHandle_t bufferAccessSemaphore = nullptr;
   TaskHandle_t writeTaskHandle = nullptr;
   ConsoleStatus custom = ConsoleStatus(ConsoleStatus::StatusCustom_t);
+  FSLogger* fsLogger = nullptr;
 
   bool initialize(void);
   void printStartupMessage(void);
@@ -289,6 +294,7 @@ class Console : public Stream
   void end(void);
   void enable(bool state) { enabled = state; }
   void flush(void) { readIdx = writeIdx; }
+  void setFSLogger(FSLogger* logger) { fsLogger = logger; }
   void printTimestamp(void);    // TODO: Add possibillity to add string as parameter
   void enableColors(bool state)
   {

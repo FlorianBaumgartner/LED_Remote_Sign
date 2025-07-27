@@ -31,12 +31,13 @@
  ******************************************************************************/
 
 #include <Arduino.h>
-#include "discord.h"
 #include "GithubOTA.h"
 #include "app.h"
 #include "console.h"
+#include "discord.h"
 #include "displayMatrix.h"
 #include "displaySign.h"
+#include "fs_logger.h"
 #include "sensor.h"
 #include "utils.h"
 
@@ -56,16 +57,25 @@ static GithubOTA githubOTA;
 static DisplayMatrix disp(LED_MATRIX_PIN, LED_MATRIX_H, LED_MATRIX_W);
 static DisplaySign sign(LED_SIGNAL_PIN, LED_SIGN_COUNT);
 static App app(utils, sensor, discord, githubOTA, disp, sign);
+static FSLogger fsLogger;
 
 
 void setup()
 {
   console.begin();
+  fsLogger.begin();
+  console.setFSLogger(&fsLogger);
   utils.begin();
   app.begin();
 }
 
 void loop()
 {
+  static bool once = false;
+  if(millis() > 5000 && !once)
+  {
+    once = true;
+    fsLogger.printStoredLog();
+  }
   vTaskDelay(100);
 }
