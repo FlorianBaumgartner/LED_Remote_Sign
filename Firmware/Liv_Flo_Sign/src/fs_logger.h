@@ -35,7 +35,7 @@
 
 #include <Arduino.h>
 #include <FS.h>
-#include <SPIFFS.h>
+#include "../lib/SPIFFS/SPIFFS.h"
 
 class FSLogger
 {

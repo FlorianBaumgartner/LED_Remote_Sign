@@ -59,8 +59,10 @@ class Utils
   enum Country
   {
     Switzerland = 0,
-    USA = 1,
-    France = 2,
+    Austria,
+    Germany,
+    USA,
+    France,
     Unknown = -1
   };
 
@@ -105,6 +107,7 @@ class Utils
   static String getResetReason() { return resetReason; }
   static uint32_t getUnixTime();                      // GMT+0000
   static bool getCurrentTime(struct tm& timeinfo);    // Local time
+  static bool getCurrentTimeDST(struct tm& timeinfo); // Local time with daylight saving time applied
   static bool isClientConnectedToPortal() { return clientConnectedToPortal; }
   static bool isDaylightSavingTime() { return dst_offset != 0; }
   static Country getCountry() { return country; }

@@ -77,5 +77,23 @@ void loop()
     once = true;
     fsLogger.printStoredLog();
   }
+
+  static uint32_t t = millis();
+  if(millis() - t > 60 * 1000)
+  {
+    t = millis();
+    if(Utils::getConnectionState() && millis() > 48 * 3600 * 1000)  // Reset after 47 hours
+    {
+      tm currentTime;
+      if(Utils::getCurrentTimeDST(currentTime))
+      {
+        if(currentTime.tm_hour == 3) // Between 03:00:00 and 03:59:59
+        {
+          console.log.println("[MAIN] Restarting to prevent memory leaks");
+          esp_restart();
+        } 
+      }
+    }
+  }
   vTaskDelay(100);
 }

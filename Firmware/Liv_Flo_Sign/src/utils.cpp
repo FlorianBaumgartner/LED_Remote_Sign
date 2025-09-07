@@ -306,6 +306,27 @@ bool Utils::getCurrentTime(struct tm& timeinfo)
   return true;
 }
 
+bool Utils::getCurrentTimeDST(struct tm& timeinfo)
+{
+  if(!getCurrentTime(timeinfo))
+  {
+    return false;
+  }
+  if(dst_offset == 0)
+  {
+    return true;
+  }
+  time_t now;
+  time(&now);
+  now -= (time_t)dst_offset;
+  if(localtime_r(&now, &timeinfo) == nullptr)
+  {
+    return false;
+  }
+  return true;
+}
+
+
 bool Utils::updateTimeZoneOffset()
 {
   static const char* ntpServer = "pool.ntp.org";
@@ -467,6 +488,16 @@ void Utils::updateTask(void* pvParameter)
           {
             country = Utils::Switzerland;
             console.log.println("[UTILS] Country: Switzerland");
+          }
+          else if (strncmp(myCountry.cc, "AT", 2) == 0)
+          {
+            country = Utils::Austria;
+            console.log.println("[UTILS] Country: Austria");
+          }
+          else if(strncmp(myCountry.cc, "DE", 2) == 0)
+          {
+            country = Utils::Germany;
+            console.log.println("[UTILS] Country: Germany");
           }
           else if(strncmp(myCountry.cc, "US", 2) == 0)
           {
